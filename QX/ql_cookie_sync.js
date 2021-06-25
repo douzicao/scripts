@@ -48,8 +48,7 @@ $.log(`账号：${account.username}`);
   headers.Authorization = `Bearer ${token}`;
   const cookiesRes = await getCookies();
   const ids = cookiesRes.data.map(item => item._id);
-  await delCookie(ids);
-  $.log('清空 cookie');
+  
 
   if (jd_cookie1) jd_cookies.push(
     {cookie: jd_cookie1, userName: getUsername(jd_cookie1)});
