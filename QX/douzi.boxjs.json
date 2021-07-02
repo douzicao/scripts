@@ -53,20 +53,20 @@
         "https://qinglong.whyour.cn/qinglong.png"
       ],
       "author": "@dompling",
-      "repo": "https://github.com/dompling/Script/blob/master/jd/ql_cookie_sync.js",
+      "repo": "https://github.com/douzicao/scripts/blob/main/QX/ql_cookie_sync.js",
       "scripts": [
         {
           "name": "BoxJS同步到青龙(京东 Ck)",
-          "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/ql_cookie_sync.js"
+          "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/ql_cookie_sync.js"
         },
         {
           "name": "青龙同步到BoxJS(京东 Ck)"
 
-          "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/ql_sync_box.js"
+          "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/ql_sync_box.js"
         },
         {
           "name": "同步环境变量",
-          "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/ql_sync_env.js"
+          "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/ql_sync_env.js"
         }
       ],
       "descs_html": [
@@ -114,8 +114,8 @@
         "https://raw.githubusercontent.com/Orz-3/task/master/jd.png"
       ],
       "author": "@dompling",
-      "repo": "https://github.com/dompling/Script/blob/master/jd/jd_cookie_search.js",
-      "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/jd_cookie_search.js"
+      "repo": "https://github.com/douzicao/scripts/blob/main/QX/jd_cookie_search.js",
+      "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/jd_cookie_search.js"
     },
     {
       "id": "JD_Cookies",
@@ -162,15 +162,12 @@
         "https://raw.githubusercontent.com/Orz-3/task/master/jd.png"
       ],
       "author": "@dompling",
-      "repo": "https://github.com/dompling/Script/blob/master/jd/JD_extra.js",
+      "repo": "https://github.com/douzicao/scripts/blob/main/QX/JD_extra_cookie.js",
       "scripts": [
-        {
-          "name": "京东签到",
-          "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/JD_extra_sign.js"
-        },
+        
         {
           "name": "删除相关 ck",
-          "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/jd_ck_del.js"
+          "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/jd_ck_del.js"
         }
       ]
     }
