@@ -1,5 +1,5 @@
 {
-  "id": "app.sub",
+  "id": "douzi.app.sub",
   "name": "应用订阅",
   "author": "douzi",
   "icon": "",
@@ -164,7 +164,6 @@
       "author": "@dompling",
       "repo": "https://github.com/douzicao/scripts/blob/main/QX/JD_extra_cookie.js",
       "scripts": [
-        
         {
           "name": "删除相关 ck",
           "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/jd_ck_del.js"
