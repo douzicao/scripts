@@ -7,27 +7,27 @@ ScriptName: 京东账号登陆辅助
 ==================================
 该脚本需要搭配 【京东账号 CK 检索】 使用
 ==================================
+
 [MITM]
 hostname = plogin.m.jd.com,home.m.jd.com
 
 【Surge脚本配置】:
 ===================
 [Script]
-京东登陆页面辅助 = type=http-response,pattern=^https?:\/\/home\.m\.jd\.com\/userinfom\/QueryUserInfoM,requires-body=1,max-size=0,timeout=1000,script-path=https://raw.githubusercontent.com/dompling/Script/master/jd/jd_login_help2.js,script-update-interval=0
-京东个人中心登陆辅助 = type=http-response,pattern=^https?:\/\/plogin\.m\.jd\.com\/login\/login,requires-body=1,max-size=0,timeout=1000,script-path=https://raw.githubusercontent.com/dompling/Script/master/jd/jd_login_help2.js,script-update-interval=0
+京东登陆页面辅助 = type=http-response,pattern=^https?:\/\/home\.m\.jd\.com\/userinfom\/QueryUserInfoM,requires-body=1,max-size=0,timeout=1000,script-path=https://raw.githubusercontent.com/dompling/Script/master/jd/jd_login_help.js,script-update-interval=0
+京东个人中心登陆辅助 = type=http-response,pattern=^https?:\/\/plogin\.m\.jd\.com\/login\/login,requires-body=1,max-size=0,timeout=1000,script-path=https://raw.githubusercontent.com/dompling/Script/master/jd/jd_login_help.js,script-update-interval=0
 ===================
 【Loon脚本配置】:
 ===================
 [Script]
-http-response ^https?:\/\/home\.m\.jd\.com\/userinfom\/QueryUserInfoM tag=京东登陆辅助, script-path=https://raw.githubusercontent.com/dompling/Script/master/jd/jd_login_help2.js,requires-body=1
-http-response ^https?:\/\/plogin\.m\.jd\.com\/login\/login tag=京东登陆辅助, script-path=https://raw.githubusercontent.com/dompling/Script/master/jd/jd_login_help2.js,requires-body=1
+http-response ^https?:\/\/home\.m\.jd\.com\/userinfom\/QueryUserInfoM tag=京东登陆辅助, script-path=https://raw.githubusercontent.com/dompling/Script/master/jd/jd_login_help.js,requires-body=1
+http-response ^https?:\/\/plogin\.m\.jd\.com\/login\/login tag=京东登陆辅助, script-path=https://raw.githubusercontent.com/dompling/Script/master/jd/jd_login_help.js,requires-body=1
 ===================
 【 QX  脚本配置 】:
 ===================
 [rewrite_local]
-^https?:\/\/home\.m\.jd\.com\/userinfom\/QueryUserInfoM url script-response-body https://raw.githubusercontent.com/dompling/Script/master/jd/jd_login_help2.js
-^https?:\/\/plogin\.m\.jd\.com\/login\/login url script-response-body https://raw.githubusercontent.com/dompling/Script/master/jd/jd_login_help2.js
-
+^https?:\/\/home\.m\.jd\.com\/userinfom\/QueryUserInfoM url script-response-body https://raw.githubusercontent.com/dompling/Script/master/jd/jd_login_help.js
+^https?:\/\/plogin\.m\.jd\.com\/login\/login url script-response-body https://raw.githubusercontent.com/dompling/Script/master/jd/jd_login_help.js
 
  */
 const $ = new API('jd_ck_remark');
@@ -71,31 +71,28 @@ function initBoxJSData() {
   let cookiesRemark = JSON.parse($.read(remark_key) || '[]');
   const keyword = ($.read(searchKey) || '').split(',');
   cookiesRemark = cookiesRemark.filter((item, index) => {
-    return keyword[0] ? (
-      keyword.indexOf(`${index}`) > -1 ||
+    return keyword[0] ? ((keyword.indexOf(`${index}`) > -1 ||
       keyword.indexOf(item.username) > -1 ||
       keyword.indexOf(item.nickname) > -1 ||
-      keyword.indexOf(item.status) > -1
-    ) : true;
+      keyword.indexOf(item.status) > -1)) : !!item.mobile;
   });
 
   cookiesRemark = cookiesRemark.map(
     item => ({...item, cookie: cookiesFormat[item.username]})).filter(
     item => !!item.cookie);
-
   return cookiesRemark;
 }
 
 const cookiesRemark = initBoxJSData();
 
+const options = cookiesRemark.map(
+  item => (`<option value="${item.mobile}">${item.username}[${item.nickname}]</option>`)).
+  join('');
+
 // 生成标签样式
 function createStyle() {
   return `
 <style>
-   #cus-mask p,#cus-mask span{
-    padding: 0;
-    margin: 0;
-   }
   .tool_bars{
     position: fixed;
     top:50%;
@@ -128,6 +125,7 @@ function createStyle() {
     font-size: ${getRem(.1)};
   }
   #cus-mask{
+    display: none;
     position: fixed;
     top: 0;
     left: 0;
@@ -154,20 +152,16 @@ function createStyle() {
     font-size: ${getRem(0.16)};
     font-family: PingFangSC-Semibold;
     text-align: center;
-    padding: 0 ${getRem(0.13)} 0;
-    position: absolute;
-    top: ${getRem(0.1)};
-    background: #fff;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 999;
+    padding: ${getRem(0.18)} 0 ${getRem(0.13)};
   }
   .cus-content{
     font-family: PingFangSC-Regular;
     font-size: ${getRem(0.14)};
     line-height: ${getRem(0.22)};
-    padding: ${getRem(0.25)} ${getRem(0.1)} 0;
-    position: relative;
+    padding: 0 ${getRem(0.25)};
+    height: ${getRem(1.98)};
+    overflow-x: hidden;
+    overflow-y: scroll;
   }
   .cus-content label{
     color: rgba(0,0,0,.4);
@@ -183,6 +177,11 @@ function createStyle() {
   }
   .cus-content li{
     list-style-type: cjk-ideographic;
+  }
+  #jd_account{
+    width: 100%;
+    height: ${getRem(0.4)};
+    text-align: center
   }
   .cus-footer{
     margin-top: ${getRem(0.09)};
@@ -239,129 +238,9 @@ function createStyle() {
     -webkit-transform: translate(-50%,-50%);
     -o-transform: translate(-50%,-50%);
   }
-  #account_list{
-    border: 4px solid #f7bb10;
-    border-radius: ${getRem(0.3)};
-    height: ${getRem(1.98)};
-    overflow-x: hidden;
-    overflow-y: scroll;
-    padding: ${getRem(0.06)} ${getRem(0.1)};
-    box-sizing: border-box;
-  }
-  .cus-avatar{
-     padding: ${getRem(.05)};
-     display: flex;
-     align-items: center;
-     border: 1px solid #eee;
-     border-radius: ${getRem(0.2)};
-     box-sizing: border-box;
-     position: relative;
-     margin-bottom: ${getRem(0.1)};
-     height: ${getRem(0.5)};
-  }
-  .avatar_img{
-    width: ${getRem(0.35)};
-    height: ${getRem(0.35)};
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: ${getRem(.1)};
-    border: 1px solid #f7bb10;
-    overflow: hidden;
-    padding: ${getRem(0.1)};
-    white-space: nowrap;
-    background-size: contain;
-    box-sizing: border-box;
-    font-weight: bold;
-    margin-left: ${getRem(0.05)};
-  }
-  .cususer_info{
-    margin-left: ${getRem(0.1)};
-    display: flex;
-    align-items: start;
-    flex-direction: column;
-  }
-  .cus-icon{
-    display: block;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    border: 1px solid #52c41a;
-    position: absolute;
-    font-size: ${getRem(0.05)};
-    right: ${getRem(0.15)};
-    top: 50%;
-    transform: translateY(-50%);
-    text-align: center;
-    line-height: ${getRem(0.3)};
-    box-shadow: 0 0 4px #52c41a;
-    animation: flash 2s linear infinite;
-  }
-  .cususer_info p {
-    font-weight: bold;
-    font-size: ${getRem(0.1)};
-    line-height: 1.8;
-  }
-  .cususer_info span{
-    font-weight: unset;
-    color: #666;
-    font-size: ${getRem(0.08)};
-    line-height: 1.8;
-  }
-  .not_content{
-    text-align: center;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .cus-err{
-    border-color: red;
-    animation: flashred 2s linear infinite;
-    box-shadow: 0 0 4px red;
-  }
-
-  .cus-active{
-    border-color: #91d5ff;
-    box-shadow: 0 0 4px #91d5ff;
-  }
-
-  @keyframes flashred{
-    0%{ box-shadow: 0 0 4px red}
-    25%{ box-shadow: 0 0 6px red}
-    50%{ box-shadow: 0 0 10px red}
-    75%{ box-shadow: 0 0 6px red}
-    100%{ box-shadow: 0 0 4px red}
-  }
-
-  @keyframes flash{
-    0%{ box-shadow: 0 0 4px #52c41a}
-    25%{ box-shadow: 0 0 6px #52c41a}
-    50%{ box-shadow: 0 0 10px #52c41a}
-    75%{ box-shadow: 0 0 6px #52c41a}
-    100%{ box-shadow: 0 0 4px #52c41a}
-  }
 </style>
 `;
 }
-
-const accounts = cookiesRemark.map(
-  item => {
-    const status = item.status === '正常';
-    return (`
-<div class="cus-avatar" data-value="${item.mobile}" data-name="${item.username}">
-  <div class="avatar_img" style="background-image: url(${item.avatar ||
-    '//img11.360buyimg.com/jdphoto/s120x120_jfs/t21160/90/706848746/2813/d1060df5/5b163ef9N4a3d7aa6.png'});color: #fff"></div>
-  <div class="cususer_info">
-     <p>${item.nickname} </p>
-     <span>${item.username}</span>
-  </div>
-  <span class="cus-icon ${status ? '' : 'cus-err'}"></span>
-</div>`);
-  }).
-  join('');
 
 // 生成 html 标签
 function createHTML() {
@@ -371,13 +250,20 @@ function createHTML() {
   return `
 <div id="cus-mask" style="display: none">
   <div class="cus-mask_view">
+    <div class="cus-view">
+      ${isLogin ? 'BoxJS 京东 ck 列表' : '切换 BoxJS 其他账号'}
+    </div>
     <div class="cus-content">
-      <div class="cus-view">京东账号列表</div>
-      <div id="account_list">
-          ${!accounts.length
-    ? '<div class="not_content">未找到账号，请去 <span style="color: red" onclick="window.location.href=\'http://boxjs.net\'">【BoxJS】</span> 初始化</div>'
-    : accounts}
-      </div>
+       <label>ck 选择列表：</label>
+        <select id="jd_account">
+            <option value="">------请选择------</option>
+            ${options}
+        </select>
+        <ul>
+            <li>请查看BoxJS是否订阅 <a style="color: #f7bb10" href="https://raw.githubusercontent.com/dompling/Script/master/dompling.boxjs.json">Dompling</a></li>
+            <li>该脚本配合【<a href="javascript:viod(0);" onclick="window.location.href='http://boxjs.net/#/app/JD_Cookies_remark'" style="color: #f7bb10">京东账号 CK 检索</a>】使用</li>
+            <li>若想更新 ck，可以在检索中设置【未登录】条件，然后使用页面的快速填充功能</li>
+        </ul>
     </div>
     <div class="cus-footer">
         <div class="btn-wrap" style="display: flex">
@@ -396,10 +282,11 @@ function createHTML() {
 
 <div class="tool_bars">
   <div id="boxjs" class="tool_bar">
-   <img  src="https://raw.githubusercontent.com/chavyleung/scripts/master/BOXJS.png" />
+   <img src="https://raw.githubusercontent.com/chavyleung/scripts/master/BOXJS.png" />
   </div>
   <div id="copyCk" class="tool_bar"><span>Ck</span></div>
 </div>
+
   `;
 }
 
@@ -419,23 +306,6 @@ function createScript() {
     const ok_btn = document.querySelector("#cus-mask-ok");
     const clear_btn = document.querySelector("#clear-ck");
     const tip_view = document.querySelector("#cus-tip");
-    const avatarView = document.querySelectorAll(".cus-avatar");
-
-   const avatarItem = jd_ck.find(item=> item.username === pp);
-   if(avatarItem && avatarItem.avatar){
-     boxjs_btn.innerHTML = "<img src='"+ avatarItem.avatar +"' />";
-   }
-
-    avatarView.forEach(item=>{
-      item.onclick = function (){
-        avatarView.forEach(item=>{
-            item.className = "cus-avatar";
-            item.id = "";
-        })
-        this.className = "cus-avatar cus-active";
-        this.id = "jd_account";
-      }
-    })
 
     boxjs_btn.addEventListener('click', function(){
       maskVisible(true);
@@ -487,8 +357,7 @@ function createScript() {
     }
 
     function fillInput(){
-      const sbBtn= document.getElementById('jd_account');
-      const cuMobile = sbBtn.getAttribute('data-value');
+      const cuMobile = document.getElementById('jd_account').value;
       console.log('快速填充号码：'+ cuMobile);
       const input = document.getElementsByClassName('acc-input mobile J_ping')[0];
       input.value = cuMobile;
@@ -502,16 +371,15 @@ function createScript() {
         var keys = document.cookie.match(/[^ =;]+(?=\\=)/g);
         if (keys) {
             for (var i = keys.length; i--;){
-              document.cookie = keys[i] + '=;path=/;domain=.jd.com;expires=' + new Date(0).toUTCString()
+              document.cookie = keys[i] + '=;expires=' + new Date(0).toUTCString()
             }
         }
     }
 
    function btnSubmit(){
-    const sbBtn= document.getElementById('jd_account');
-    if(!sbBtn) return alert("请选择需要登陆的账号");
-    const cuName = sbBtn.getAttribute('data-name');
-    const login_ck = jd_ck.find(item=>item.username===cuName);
+    const cuMobile = document.getElementById('jd_account').value;
+    if(!cuMobile) return alert("请选择需要登陆的账号");
+    const login_ck = jd_ck.find(item=>item.mobile===cuMobile);
     if(!login_ck) return alert("未找到相关账号");
     let [ pt_key , pt_pin ] = login_ck.cookie.split(";");
     pt_key = pt_key.split("=");
@@ -521,8 +389,6 @@ function createScript() {
     setCookie(pt_pin[0],pt_pin[1]);
     window.location.reload();
   }
-
-
   function setCookie(cname,cvalue){
       var ed = new Date();
       const mt = ed.getMonth()+1;

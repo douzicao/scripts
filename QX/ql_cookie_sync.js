@@ -48,7 +48,8 @@ $.log(`账号：${account.username}`);
   headers.Authorization = `Bearer ${token}`;
   const cookiesRes = await getCookies();
   const ids = cookiesRes.data.map(item => item._id);
-  
+  await delCookie(ids);
+  $.log('清空 cookie');
 
   if (jd_cookie1) jd_cookies.push(
     {cookie: jd_cookie1, userName: getUsername(jd_cookie1)});
@@ -65,6 +66,15 @@ $.log(`账号：${account.username}`);
       remarks = username;
     }
     await addCookies({name: 'JD_COOKIE', value: jd_cookie.cookie, remarks});
+  }
+
+  const _cookiesRes = await getCookies();
+  const _ids = _cookiesRes.data.filter(
+    item => item.remarks.indexOf('已过期') > -1).
+    map(item => item._id);
+  if (_ids.length > 0) {
+    console.log(`过期账号：${_ids.join('；')}`);
+    await disabled(_ids);
   }
 
   const cookieText = jd_cookies.map(item => item.userName).join(`\n`);
@@ -101,6 +111,15 @@ function addCookies(cookies) {
 function delCookie(ids) {
   const opt = {url: getURL(urlStr), headers, body: JSON.stringify(ids)};
   return $.http.delete(opt).then((response) => JSON.parse(response.body));
+}
+
+function disabled(ids) {
+  const opt = {
+    url: getURL(`${urlStr}/disable`),
+    headers,
+    body: JSON.stringify(ids),
+  };
+  return $.http.put(opt).then((response) => JSON.parse(response.body));
 }
 
 function ENV() {

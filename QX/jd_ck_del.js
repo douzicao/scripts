@@ -1,159 +1,48 @@
-/*
+const $ = new API('JD_Cookies', true);
+const delKey = '#del_condition';
+let condition = $.read(delKey);
+const CacheKey = `#CookiesJD`;
 
-Author: 2Ya
-Github: https://github.com/domping
-Version: v1.1.0
-
-===================
-特别说明：
-1.获取多个京东cookie文件，不和野比大佬的文件冲突。暂不支持野比大佬脚本签到。
-2.若是要使用京东多合一签到，请使用修改版地址：https://raw.githubusercontent.com/dompling/Script/master/jd/JD_extra_sign.js
-===================
-===================
-使用方式：复制 https://home.m.jd.com/myJd/newhome.action 到浏览器打开 ，在个人中心自动获取 cookie，
-若弹出成功则正常使用。否则继续再此页面继续刷新一下试试
-===================
-
-===================
-[MITM]
-hostname = me-api.jd.com
-
-【Surge脚本配置】:
-===================
-[Script]
-获取京东Cookie = type=http-request,pattern=^https:\/\/me-api\.jd\.com\/user_new\/info\/GetJDUserInfoUnion,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/dompling/Script/master/jd/JD_extra_cookie.js,script-update-interval=0
-
-===================
-【Loon脚本配置】:
-===================
-[Script]
-http-request ^https:\/\/me-api\.jd\.com\/user_new\/info\/GetJDUserInfoUnion tag=获取京东Cookie, script-path=https://raw.githubusercontent.com/dompling/Script/master/jd/JD_extra_cookie.js
-
-===================
-【 QX  脚本配置 】 :
-===================
-
-[rewrite_local]
-^https:\/\/me-api\.jd\.com\/user_new\/info\/GetJDUserInfoUnion  url script-request-header https://raw.githubusercontent.com/dompling/Script/master/jd/JD_extra_cookie.js
-
- */
-const APIKey = 'CookiesJD';
-const $ = new API(APIKey, true);
-const CacheKey = `#${APIKey}`;
-
-const CookieJD = '#CookieJD';
-const CookieJD2 = '#CookieJD2';
-
-const jdHelp = JSON.parse($.read('#jd_ck_remark') || '{}');
-let remark = [];
+let cookies = [];
 try {
-  remark = JSON.parse(jdHelp.remark || '[]');
+  cookies = JSON.parse($.read(CacheKey) || '[]');
 } catch (e) {
   console.log(e);
 }
+try {
+  if (condition) {
+    condition = condition.split(',');
+    console.log('当前删除条件');
+    console.log(JSON.stringify(condition, null, `\t`));
 
-let cookie1 = $.read(CookieJD) || '';
-let cookie2 = $.read(CookieJD2) || '';
-
-function getUsername(ck) {
-  if (!ck) return '';
-  console.log(ck);
-  return decodeURIComponent(ck.match(/pt_pin=(.+?);/)[1]);
-}
-
-const mute = '#cks_get_mute';
-$.mute = $.read(mute);
-if ($request) GetCookie();
-$.done();
-
-function getCache() {
-  return JSON.parse($.read(CacheKey) || '[]');
-}
-
-function updateJDHelp(username) {
-  if (remark.length) {
-    const newRemark = remark.map(item => {
-      if (item.username === username) {
-        return {...item, status: '正常'};
-      }
-      return item;
-    });
-    jdHelp.remark = JSON.stringify(newRemark, null, `\t`);
-    $.write(JSON.stringify(jdHelp), '#jd_ck_remark');
-  }
-}
-
-function GetCookie() {
-  const Referer = $request.headers['Referer'] || '';
-  if (!Referer) return;
-  try {
-    if ($request.headers && $request.url.indexOf('GetJDUserInfoUnion') > -1) {
-      const CV = $request.headers['Cookie'] || $request.headers['cookie'];
-      if (CV.match(/(pt_key=.+?pt_pin=|pt_pin=.+?pt_key=)/)) {
-        const CookieValue = CV.match(/pt_key=.+?;/) + CV.match(/pt_pin=.+?;/);
-        const DecodeName = getUsername(CookieValue);
-        let updateIndex = null, CookieName, tipPrefix;
-
-        if (cookie1) {
-          if (getUsername(cookie1) === DecodeName) {
-            $.write(CookieValue, CookieJD);
-            updateJDHelp(DecodeName);
-            if ($.mute === 'true') return;
-            return $.notify('用户名: ' + DecodeName, '', '更新 Cookie 成功 🎉');
-          }
-        }
-
-        if (cookie2) {
-          if (getUsername(cookie2) === DecodeName) {
-            $.write(CookieValue, CookieJD2);
-            updateJDHelp(DecodeName);
-            if ($.mute === 'true') return;
-            return $.notify('用户名: ' + DecodeName, '', '更新 Cookie 成功 🎉');
-          }
-        }
-
-        const CookiesData = getCache();
-        const updateCookiesData = [...CookiesData];
-
-        CookiesData.forEach((item, index) => {
-          if (getUsername(item.cookie) === DecodeName) updateIndex = index;
-        });
-
-        if (updateIndex !== null) {
-          updateCookiesData[updateIndex].cookie = CookieValue;
-          CookieName = '【账号' + (updateIndex + 1) + '】';
-          tipPrefix = '更新京东';
-        } else {
-          updateCookiesData.push({
-            userName: DecodeName,
-            cookie: CookieValue,
-          });
-          CookieName = '【账号' + updateCookiesData.length + '】';
-          tipPrefix = '首次写入京东';
-        }
-        const cacheValue = JSON.stringify(updateCookiesData, null, `\t`);
-        $.write(cacheValue, CacheKey);
-        updateJDHelp(DecodeName);
-        if (updateIndex !== null && $.mute === 'true') return;
-        $.notify(
-          '用户名: ' + DecodeName,
-          '',
-          tipPrefix + CookieName + 'Cookie成功 🎉',
+    const delData = [];
+    const newData = cookies.filter(
+      (item, index) => {
+        const where = (
+          condition.indexOf(`${index + 1}`) === -1 ||
+          condition.indexOf(item.userName) === -1
         );
-      } else {
-        $.notify('写入京东Cookie失败', '', '请查看脚本内说明, 登录网页获取 ‼️');
-      }
-    } else {
-      $.notify('写入京东Cookie失败', '', '请检查匹配URL或配置内脚本类型 ‼️');
+        if (!where) delData.push(item);
+        return where;
+      });
+
+    if (cookies.length !== newData.length) {
+      console.log('=============删除信息=============');
+      console.log(JSON.stringify(delData, null, `\t`));
+      console.log('=================================');
+      $.write(JSON.stringify(newData, null, `\t`), CacheKey);
+      $.notify(
+        '删除成功', '',
+        `已删除 CK ${cookies.length - newData.length} 条\n${delData.map(
+          item => item.userName).join('，')}`,
+      );
     }
-  } catch (eor) {
-    // $.notify('写入京东Cookie失败', '', '请重试 ⚠️');
-    console.log(
-      `\n写入京东Cookie出现错误 ‼️\n${JSON.stringify(
-        eor,
-      )}\n\n${eor}\n\n${JSON.stringify($request.headers)}\n`,
-    );
   }
+  $.write('', delKey);
+} catch (e) {
+  $.write('', delKey);
+  console.log(e);
+  $.notify('删除失败', '', '删除条件异常，已经重置删除条件');
 }
 
 function ENV() {
@@ -170,7 +59,8 @@ function ENV() {
 function HTTP(defaultOptions = {baseURL: ''}) {
   const {isQX, isLoon, isSurge, isScriptable, isNode} = ENV();
   const methods = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH'];
-  const URL_REGEX = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
+  const URL_REGEX =
+    /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
   function send(method, options) {
     options = typeof options === 'string' ? {url: options} : options;
@@ -235,7 +125,8 @@ function HTTP(defaultOptions = {baseURL: ''}) {
       })
       : null;
 
-    return (timer
+    return (
+      timer
         ? Promise.race([timer, worker]).then((res) => {
           clearTimeout(timeoutid);
           return res;
