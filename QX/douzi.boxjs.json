@@ -1,7 +1,7 @@
 {
   "id": "app.sub",
   "name": "应用订阅",
-  "author": "",
+  "author": "douzi",
   "icon": "",
   "repo": "https://github.com/douzicao/scripts/",
   "apps": [
@@ -171,5 +171,5 @@
         }
       ]
     }
-          ]
+  ]
 }
