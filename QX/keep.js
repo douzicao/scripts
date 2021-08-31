@@ -15,26 +15,35 @@ hostname = api.gotokeep.com
 */
 
 let url = $request.url;
+
 let body = $response.body;
+
 let obj = JSON.parse(body);
 
-const path1 = '/homepage/v2/tab';
-const path2 = '/athena/v4/people/my';
-const path3 = '/kprime/v1/auth';
+const path1 = 'dynamic';
+
+const path2 = 'subject';
 
 if (url.indexOf(path1) != -1) {
-body=body.replace(/memberStatus\":\d/g,'memberStatus":1');
-body=body.replace(/memberOffDays\":\d+/g,'memberOffDays":9999');
-body=body.replace(/member\":\w+/g,'member":true');
-body=body.replace(/endTime\":\d/g,'endTime":1999999999000');
-body=body.replace(/status\":\d/g,'status":1');
+
+   obj.data.permission.isMembership = true;
+
+   obj.data.permission.membership = true;
+
+   obj.data.permission.inSuit = true;
+
 }
+
 if (url.indexOf(path2) != -1) {
-body=body.replace(/memberStatus\":\d/g,'memberStatus":1');
+
+   for (var i = 0; i < obj.data.subjectInfos.length; i++) {
+
+         obj.data.subjectInfos[i].needPay = false;
+
+   }
+
 }
-if (url.indexOf(path3) != -1) {
-body=body.replace(/status\":\d/g,'status":1');
-body=body.replace(/memberStatus\":\d/g,'memberStatus":1');
-body=body.replace(/autoRenew\":\w+/g,'autoRenew":true');
-}
-$done(body);
+
+body = JSON.stringify(obj);
+
+$done({body});
