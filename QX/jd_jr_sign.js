@@ -1,159 +1,142 @@
 /*
-青龙 docker 每日自动同步 boxjs cookie
-40 * * * https://raw.githubusercontent.com/dompling/Script/master/jd/ql_cookie_sync.js
+Author: 2Ya
+Github: https://github.com/domping
+
+===================
+下载京东金融，进入app获取
+===================
+[task] 0 0 * * * https://raw.githubusercontent.com/dompling/Script/master/jd/jd_jr_sign.js
+===================
+[MITM]
+hostname = ms.jr.jd.com
+
+【Surge脚本配置】:
+===================
+[Script]
+获取京东金融领豆Cookie = type=http-request,pattern=^https?:\/\/ms\.jr\.jd\.com\/gw\/generic\/uc\/newna\/m\/userstat,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/dompling/Script/master/jd/jd_jr_cookie.js,script-update-interval=0
+
+===================
+【Loon脚本配置】:
+===================
+[Script]
+http-request ^https?:\/\/ms\.jr\.jd\.com\/gw\/generic\/uc\/newna\/m\/userstat tag=获取京东金融领豆Cookie, script-path=https://raw.githubusercontent.com/dompling/Script/master/jd/jd_jr_cookie.js,requires-body=true
+
+===================
+【 QX  脚本配置 】 :
+===================
+
+[rewrite_local]
+^https?:\/\/ms\.jr\.jd\.com\/gw\/generic\/uc\/newna\/m\/userstat url script-request-body https://raw.githubusercontent.com/dompling/Script/master/jd/jd_jr_cookie.js
+
  */
 
-const $ = new API('ql', true);
+const $ = new API('jd_jr', true);
+const title = '金融领豆';
+const cookiesKey = 'cookies';
+const bodyKey = 'bodys';
+let cookies, bodys;
 
-const title = '🐉 通知提示';
-
-const jd_cookies = JSON.parse($.read('#CookiesJD') || '[]');
-
-let remark = {};
-try {
-  const _remark = JSON.parse(
-    JSON.parse($.read('#jd_ck_remark') || '{}').remark || '[]',
-  );
-
-  _remark.forEach((item) => {
-    remark[item.username] = item;
-  });
-} catch (e) {
-  console.log(e);
+if ($.env.isNode) {
+  cookies = $.read(cookiesKey) || [];
+  bodys = $.read(bodyKey) || {};
+} else {
+  cookies = JSON.parse($.read(cookiesKey) || '[]');
+  bodys = JSON.parse($.read(bodyKey) || '{}');
 }
 
-function getUsername(ck) {
-  if (!ck) return '';
-  return decodeURIComponent(ck.match(/pt_pin=(.+?);/)[1]);
-}
-
-async function getScriptUrl() {
-  const response = await $.http.get({
-    url: 'https://raw.githubusercontent.com/dompling/Script/master/jd/ql_api.js',
-  });
-  return response.body;
-}
+const account = cookies.map((item) => ({...item, body: bodys[item.username]})).
+  filter((item) => !!item.phoneNumber);
 
 (async () => {
-  const ql_script = (await getScriptUrl()) || '';
-  eval(ql_script);
-  await $.ql.login();
-
-  const cookiesRes = await $.ql.select();
-  const ids = cookiesRes.data.map((item) => item.id);
-  await $.ql.delete(ids);
-  const wskeyRes = await $.ql.select('JD_WSCK');
-  await $.ql.delete(wskeyRes.data.map((item) => item.id));
-  $.log('清空 cookie 和 wskey');
-
-  const addData = [];
-  const wsCookie = [];
-  for (const jd_cookie of jd_cookies) {
-    const username = getUsername(jd_cookie.cookie);
-    let remarks = '';
-    if (remark[username]) {
-      remarks = remark[username].nickname;
-
-      remarks += `&${remark[username].remark}`;
-      if (remark[username].qywxUserId)
-        remarks += `&${remark[username].qywxUserId}`;
-    } else {
-      remarks = username;
-    }
-    addData.push({ name: 'JD_COOKIE', value: jd_cookie.cookie, remarks });
-    if (jd_cookie.wskey) {
-      wsCookie.push({
-        name: 'JD_WSCK',
-        remarks: remarks.split('&')[0],
-        value: `${jd_cookie.wskey}pt_pin=${encodeURI(username)};`,
-      });
-    }
-  }
-  if (addData.length) await $.ql.add(addData);
-  if (wsCookie.length) await $.ql.add(wsCookie);
-
-  const _cookiesRes = await $.ql.select();
-  const _ids = [];
-  for (let index = 0; index < _cookiesRes.data.length; index++) {
-    const item = _cookiesRes.data[index];
-    const response = await TotalBean(item.value);
-    if (response.retcode !== '0') _ids.push(item);
-  }
-
-  if (_ids.length > 0) {
-    const ids = _ids.map((item) => item.id);
-    console.log(
-      `过期账号：${_ids
-        .map((item) => item.remarks || getUsername(item.value))
-        .join(`\n`)}`,
+  $.log('===============金融领豆签到开始==============');
+  $.log(`共${account.length}个京东账号\n`);
+  $.startTimer = new Date().getTime();
+  $.msg = '';
+  for (const index in account) {
+    const cookie = account[index];
+    $.log(
+      `********金融账号：${parseInt(index) + 1} ${cookie.username}********`,
     );
-    await $.ql.disabled(ids);
-  }
+    let msg = '';
+    const joinRes = await joinActivity(cookie.phoneNumber);
+    if (joinRes.resultCode !== 0) {
+      $.log(JSON.stringify(joinRes));
+      msg = '参加活动：失败！';
+    } else {
+      const joinData = joinRes.resultData.data;
+      if (joinData.businessData) {
+        msg += '参加活动：成功！' + '\n';
+        const res =
+          joinData.businessData.rewardDesc +
+          '：' +
+          joinData.businessData.rewardPrice +
+          joinData.businessData.rewardName +
+          '\n';
+        msg += res;
+        const response = await getReward(cookie.body);
+        if (response.resultCode !== 0) {
+          $.log(response);
+        } else {
+          msg += '领取成功！';
+        }
+        $.msg += cookie.username + '：' + '已经领取！\n' + res;
+      } else {
 
-  const cookieText = jd_cookies.map((item) => item.userName).join(`\n`);
-  if ($.read('mute') !== 'true') {
-    return $.notify(title, '', `已同步账号： ${cookieText}`);
-  }
-})()
-  .catch((e) => {
-    $.log(JSON.stringify(e));
-  })
-  .finally(() => {
-    $.done();
-  });
+        msg += '该账号未完善手机号，请去boxjs中填写！';
+        $.msg += cookie.username + '：' + 'boxjs手机号未填写！\n';
 
-async function TotalBean(Cookie) {
-  const opt = {
-    url: 'https://me-api.jd.com/user_new/info/GetJDUserInfoUnion?sceneval=2&sceneval=2&g_login_type=1&g_ty=ls',
-    headers: {
-      cookie: Cookie,
-      Referer: 'https://home.m.jd.com/',
-    },
-  };
-  return $.http.get(opt).then((response) => {
-    try {
-      return JSON.parse(response.body);
-    } catch (e) {
-      return {};
+      }
     }
+    $.log(msg);
+  }
+  $.endTimer = new Date().getTime();
+  $.log('===============金融领豆签到结束==============');
+  const usedTimer = ($.endTimer - $.startTimer) / 1000;
+  $.log(`耗时：${usedTimer}秒`);
+  $.notify(title, '', $.msg);
+})().catch((e) => {
+  $.log(e);
+}).finally(() => {
+  $.done();
+});
+
+function getReward(parmas) {
+  const opt = {
+    url: 'https://ms.jr.jd.com/gw/generic/uc/newna/m/userstat',
+    headers: {
+      'Content-type': 'application/json; charset=UTF-8',
+    },
+    body: parmas,
+  };
+  return $.http.post(opt).then((response) => JSON.parse(response.body));
+}
+
+function joinActivity(phone) {
+  const params = JSON.stringify({
+    actCode: '82FBDBF455',
+    queryString:
+      'actCode=82FBDBF455&utm_source=Android*url*1599555181314&utm_medium=jrappshare&utm_term=wxfriends&from=groupmessage&isappinstalled=0',
+    type: '3',
+    phone: phone,
+    frontParam: {
+      validate: {
+        isTrusted: true,
+      },
+      queryStr:
+        'actCode=82FBDBF455&utm_source=Android*url*1599555181314&utm_medium=jrappshare&utm_term=wxfriends&from=groupmessage&isappinstalled=0',
+    },
+    channelLv: '',
+    riskDeviceParam:
+      '{"fp":"043f21008faa1a258bd76a151eb6a160","eid":"","sdkToken":"","sid":""}',
   });
-}
-
-function getURL(api, key = 'api') {
-  return `${baseURL}/${key}/${api}`;
-}
-
-function login() {
   const opt = {
-    headers,
-    url: getURL('login'),
-    body: JSON.stringify(account),
+    url: 'https://nu.jr.jd.com/gw/generic/jrm/h5/m/process?_=1617526724742',
+    headers: {
+      'Content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
+    },
+    body: `reqData=${encodeURIComponent(params)}`,
   };
   return $.http.post(opt).then((response) => JSON.parse(response.body));
-}
-
-function getCookies(searchValue = 'JD_COOKIE') {
-  const opt = { url: getURL(urlStr) + `?searchValue=${searchValue}`, headers };
-  return $.http.get(opt).then((response) => JSON.parse(response.body));
-}
-
-function addCookies(cookies) {
-  const opt = { url: getURL(urlStr), headers, body: JSON.stringify(cookies) };
-  return $.http.post(opt).then((response) => JSON.parse(response.body));
-}
-
-function delCookie(ids) {
-  const opt = { url: getURL(urlStr), headers, body: JSON.stringify(ids) };
-  return $.http.delete(opt).then((response) => JSON.parse(response.body));
-}
-
-function disabled(ids) {
-  const opt = {
-    url: getURL(`${urlStr}/disable`),
-    headers,
-    body: JSON.stringify(ids),
-  };
-  return $.http.put(opt).then((response) => JSON.parse(response.body));
 }
 
 function ENV() {
@@ -164,22 +147,22 @@ function ENV() {
   const isNode = typeof require == 'function' && !isJSBox;
   const isRequest = typeof $request !== 'undefined';
   const isScriptable = typeof importModule !== 'undefined';
-  return { isQX, isLoon, isSurge, isNode, isJSBox, isRequest, isScriptable };
+  return {isQX, isLoon, isSurge, isNode, isJSBox, isRequest, isScriptable};
 }
 
-function HTTP(defaultOptions = { baseURL: '' }) {
-  const { isQX, isLoon, isSurge, isScriptable, isNode } = ENV();
+function HTTP(defaultOptions = {baseURL: ''}) {
+  const {isQX, isLoon, isSurge, isScriptable, isNode} = ENV();
   const methods = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH'];
   const URL_REGEX =
     /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
   function send(method, options) {
-    options = typeof options === 'string' ? { url: options } : options;
+    options = typeof options === 'string' ? {url: options} : options;
     const baseURL = defaultOptions.baseURL;
     if (baseURL && !URL_REGEX.test(options.url || '')) {
       options.url = baseURL ? baseURL + options.url : options.url;
     }
-    options = { ...defaultOptions, ...options };
+    options = {...defaultOptions, ...options};
     const timeout = options.timeout;
     const events = {
       ...{
@@ -191,10 +174,9 @@ function HTTP(defaultOptions = { baseURL: '' }) {
     };
 
     events.onRequest(method, options);
-
     let worker;
     if (isQX) {
-      worker = $task.fetch({ method, ...options });
+      worker = $task.fetch({method, ...options});
     } else if (isLoon || isSurge || isNode) {
       worker = new Promise((resolve, reject) => {
         const request = isNode ? require('request') : $httpClient;
@@ -214,37 +196,34 @@ function HTTP(defaultOptions = { baseURL: '' }) {
       request.headers = options.headers;
       request.body = options.body;
       worker = new Promise((resolve, reject) => {
-        request
-          .loadString()
-          .then((body) => {
-            resolve({
-              statusCode: request.response.statusCode,
-              headers: request.response.headers,
-              body,
-            });
-          })
-          .catch((err) => reject(err));
+        request.loadString().then((body) => {
+          resolve({
+            statusCode: request.response.statusCode,
+            headers: request.response.headers,
+            body,
+          });
+        }).catch((err) => reject(err));
       });
     }
 
     let timeoutid;
     const timer = timeout
       ? new Promise((_, reject) => {
-          timeoutid = setTimeout(() => {
-            events.onTimeout();
-            return reject(
-              `${method} URL: ${options.url} exceeds the timeout ${timeout} ms`,
-            );
-          }, timeout);
-        })
+        timeoutid = setTimeout(() => {
+          events.onTimeout();
+          return reject(
+            `${method} URL: ${options.url} exceeds the timeout ${timeout} ms`,
+          );
+        }, timeout);
+      })
       : null;
 
     return (
       timer
         ? Promise.race([timer, worker]).then((res) => {
-            clearTimeout(timeoutid);
-            return res;
-          })
+          clearTimeout(timeoutid);
+          return res;
+        })
         : worker
     ).then((resp) => events.onResponse(resp));
   }
@@ -258,7 +237,7 @@ function HTTP(defaultOptions = { baseURL: '' }) {
 }
 
 function API(name = 'untitled', debug = false) {
-  const { isQX, isLoon, isSurge, isNode, isJSBox, isScriptable } = ENV();
+  const {isQX, isLoon, isSurge, isNode, isJSBox, isScriptable} = ENV();
   return new (class {
     constructor(name, debug) {
       this.name = name;
@@ -281,12 +260,12 @@ function API(name = 'untitled', debug = false) {
       this.initCache();
 
       const delay = (t, v) =>
-        new Promise(function (resolve) {
+        new Promise(function(resolve) {
           setTimeout(resolve.bind(null, v), t);
         });
 
-      Promise.prototype.delay = function (t) {
-        return this.then(function (v) {
+      Promise.prototype.delay = function(t) {
+        return this.then(function(v) {
           return delay(t, v);
         });
       };
@@ -307,7 +286,7 @@ function API(name = 'untitled', debug = false) {
           this.node.fs.writeFileSync(
             fpath,
             JSON.stringify({}),
-            { flag: 'wx' },
+            {flag: 'wx'},
             (err) => console.log(err),
           );
         }
@@ -319,7 +298,7 @@ function API(name = 'untitled', debug = false) {
           this.node.fs.writeFileSync(
             fpath,
             JSON.stringify({}),
-            { flag: 'wx' },
+            {flag: 'wx'},
             (err) => console.log(err),
           );
           this.cache = {};
@@ -340,13 +319,13 @@ function API(name = 'untitled', debug = false) {
         this.node.fs.writeFileSync(
           `${this.name}.json`,
           data,
-          { flag: 'w' },
+          {flag: 'w'},
           (err) => console.log(err),
         );
         this.node.fs.writeFileSync(
           'root.json',
           JSON.stringify(this.root),
-          { flag: 'w' },
+          {flag: 'w'},
           (err) => console.log(err),
         );
       }

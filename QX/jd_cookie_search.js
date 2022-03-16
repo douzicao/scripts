@@ -30,7 +30,7 @@ const cookiesRemark = JSON.parse($.read(remark_key) || '[]');
 const CookiesJD = JSON.parse($.read(CacheKey) || '[]');
 const CookieJD = $.read('#CookieJD');
 const CookieJD2 = $.read('#CookieJD2');
-const ckData = CookiesJD.map(item => item.cookie);
+const ckData = CookiesJD.map((item) => item.cookie);
 if (CookieJD) ckData.unshift(CookieJD);
 if (CookieJD2) ckData.unshift(CookieJD2);
 
@@ -38,7 +38,7 @@ console.log('初始化备注开始');
 console.log(`=========== 检测到京东账号：【${ckData.length}】个 ===========`);
 
 const ckRemarkFormat = {};
-cookiesRemark.forEach(item => {
+cookiesRemark.forEach((item) => {
   ckRemarkFormat[item.username] = item;
 });
 
@@ -54,23 +54,33 @@ cookiesRemark.forEach(item => {
     const response = await isLogin(cookie);
     const status = response.retcode === '0' ? '正常' : '未登录';
 
-    let avatar = '', nickname = '';
+    let avatar = '',
+      nickname = '',
+      isPlusVip = 0;
     if (response.retcode === '0') {
+      isPlusVip = response.data.userInfo.isPlusVip;
       avatar = response.data.userInfo.baseInfo.headImageUrl;
       nickname = response.data.userInfo.baseInfo.nickname;
+      console.log('帐号昵称：' + nickname);
     }
 
     console.log(`检查结束：账号【${ckIndex}】 ${username}【${status}】`);
     console.log('===================================');
+    let newRemark =
+      nickname ||
+      (ckRemarkFormat[username] ? ckRemarkFormat[username].remark : '');
 
     const item = {
       index: ckIndex,
       username,
       nickname,
+      qywxUserId: '',
       mobile: '',
       avatar,
       ...ckRemarkFormat[username],
+      isPlusVip,
       status,
+      remark: newRemark,
     };
     if (status === '未登录') notLogin.push(item);
     ckFormat.push(item);
@@ -79,47 +89,54 @@ cookiesRemark.forEach(item => {
   $.msg = '检索完成，所有账号状态正常！';
   console.log($.msg);
   if (notLogin.length) {
-    console.log(`----------------未登录账号【${notLogin.length}】----------------`);
-    console.log(JSON.stringify(notLogin, null, `\t`));
-    $.msg = `未登录账号：\n ${notLogin.map(
-      item => `账号【${item.index}】:${item.nickname || item.username}`).join(
-      '\n')}`;
+    console.log(
+      `----------------未登录账号【${notLogin.length}】----------------`,
+    );
+    console.log(
+      notLogin.map((item) => `${item.username}【${item.nickname}】`).join(`\n`),
+    );
+    $.msg = `未登录账号：\n ${notLogin
+      .map((item) => `账号【${item.index}】:${item.nickname || item.username}`)
+      .join(`\n`)}`;
   }
   $.write(JSON.stringify(ckFormat, null, `\t`), remark_key);
   console.log(`检测到${keyword.length - 1}个搜索条件：${keyword.join(',')}`);
-  console.log('=================');
-  console.log(ckData.join('&'));
-  console.log('=================');
   if (keyword && keyword[0]) {
     console.log('开始搜索中');
-    const searchValue = ckFormat.filter(
-      (item, index) => {
-        return (
-          keyword.indexOf(`${index}`) > -1 ||
-          keyword.indexOf(item.username) > -1 ||
-          keyword.indexOf(item.nickname) > -1 ||
-          keyword.indexOf(item.status) > -1
-        );
-      });
+    const searchValue = ckFormat.filter((item, index) => {
+      return (
+        keyword.indexOf(`${index}`) > -1 ||
+        keyword.indexOf(item.username) > -1 ||
+        keyword.indexOf(item.nickname) > -1 ||
+        keyword.indexOf(item.status) > -1
+      );
+    });
     if (searchValue.length) {
       $.msg = `已找到搜索结果：\n`;
-      searchValue.forEach(item => {
-        $.msg += `${item.nickname ||
-        item.username}:${item.mobile} 【${item.status}】\n`;
+      searchValue.forEach((item) => {
+        $.msg += `${item.nickname || item.username}:${item.mobile} 【${
+          item.status
+        }】\n`;
       });
     } else {
       $.msg = '未找到相关 ck';
     }
     console.log($.msg);
-    $.notify(noTitle, `关键字：${keyword}`, $.msg);
+    if ($.read('mute') !== 'true') {
+      $.notify(noTitle, `关键字：${keyword}`, $.msg);
+    }
   } else {
-    $.notify(noTitle, ``, $.msg);
+    if ($.read('mute') !== 'true') {
+      $.notify(noTitle, ``, $.msg);
+    }
   }
-})().catch(e => {
-  console.log(e);
-}).finally(() => {
-  $.done();
-});
+})()
+  .catch((e) => {
+    console.log(e);
+  })
+  .finally(() => {
+    $.done();
+  });
 
 async function isLogin(Cookie) {
   const opt = {
@@ -157,23 +174,23 @@ function ENV() {
   };
 }
 
-function HTTP(defaultOptions = {
-  baseURL: '',
-}) {
-  const {
-    isQX,
-    isLoon,
-    isSurge,
-    isScriptable,
-    isNode,
-  } = ENV();
+function HTTP(
+  defaultOptions = {
+    baseURL: '',
+  },
+) {
+  const { isQX, isLoon, isSurge, isScriptable, isNode } = ENV();
   const methods = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH'];
-  const URL_REGEX = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
+  const URL_REGEX =
+    /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
   function send(method, options) {
-    options = typeof options === 'string' ? {
-      url: options,
-    } : options;
+    options =
+      typeof options === 'string'
+        ? {
+            url: options,
+          }
+        : options;
     const baseURL = defaultOptions.baseURL;
     if (baseURL && !URL_REGEX.test(options.url || '')) {
       options.url = baseURL ? baseURL + options.url : options.url;
@@ -222,34 +239,38 @@ function HTTP(defaultOptions = {
       request.headers = options.headers;
       request.body = options.body;
       worker = new Promise((resolve, reject) => {
-        request.loadString().then((body) => {
-          resolve({
-            statusCode: request.response.statusCode,
-            headers: request.response.headers,
-            body,
-          });
-        }).catch((err) => reject(err));
+        request
+          .loadString()
+          .then((body) => {
+            resolve({
+              statusCode: request.response.statusCode,
+              headers: request.response.headers,
+              body,
+            });
+          })
+          .catch((err) => reject(err));
       });
     }
 
     let timeoutid;
-    const timer = timeout ?
-      new Promise((_, reject) => {
-        timeoutid = setTimeout(() => {
-          events.onTimeout();
-          return reject(
-            `${method} URL: ${options.url} exceeds the timeout ${timeout} ms`,
-          );
-        }, timeout);
-      }) :
-      null;
+    const timer = timeout
+      ? new Promise((_, reject) => {
+          timeoutid = setTimeout(() => {
+            events.onTimeout();
+            return reject(
+              `${method} URL: ${options.url} exceeds the timeout ${timeout} ms`,
+            );
+          }, timeout);
+        })
+      : null;
 
-    return (timer ?
-        Promise.race([timer, worker]).then((res) => {
-          clearTimeout(timeoutid);
-          return res;
-        }) :
-        worker
+    return (
+      timer
+        ? Promise.race([timer, worker]).then((res) => {
+            clearTimeout(timeoutid);
+            return res;
+          })
+        : worker
     ).then((resp) => events.onResponse(resp));
   }
 
@@ -262,14 +283,7 @@ function HTTP(defaultOptions = {
 }
 
 function API(name = 'untitled', debug = false) {
-  const {
-    isQX,
-    isLoon,
-    isSurge,
-    isNode,
-    isJSBox,
-    isScriptable,
-  } = ENV();
+  const { isQX, isLoon, isSurge, isNode, isJSBox, isScriptable } = ENV();
   return new (class {
     constructor(name, debug) {
       this.name = name;
@@ -292,12 +306,12 @@ function API(name = 'untitled', debug = false) {
       this.initCache();
 
       const delay = (t, v) =>
-        new Promise(function(resolve) {
+        new Promise(function (resolve) {
           setTimeout(resolve.bind(null, v), t);
         });
 
-      Promise.prototype.delay = function(t) {
-        return this.then(function(v) {
+      Promise.prototype.delay = function (t) {
+        return this.then(function (v) {
           return delay(t, v);
         });
       };
@@ -316,7 +330,8 @@ function API(name = 'untitled', debug = false) {
         if (!this.node.fs.existsSync(fpath)) {
           this.node.fs.writeFileSync(
             fpath,
-            JSON.stringify({}), {
+            JSON.stringify({}),
+            {
               flag: 'wx',
             },
             (err) => console.log(err),
@@ -329,7 +344,8 @@ function API(name = 'untitled', debug = false) {
         if (!this.node.fs.existsSync(fpath)) {
           this.node.fs.writeFileSync(
             fpath,
-            JSON.stringify({}), {
+            JSON.stringify({}),
+            {
               flag: 'wx',
             },
             (err) => console.log(err),
@@ -351,14 +367,16 @@ function API(name = 'untitled', debug = false) {
       if (isNode) {
         this.node.fs.writeFileSync(
           `${this.name}.json`,
-          data, {
+          data,
+          {
             flag: 'w',
           },
           (err) => console.log(err),
         );
         this.node.fs.writeFileSync(
           'root.json',
-          JSON.stringify(this.root, null, 2), {
+          JSON.stringify(this.root, null, 2),
+          {
             flag: 'w',
           },
           (err) => console.log(err),
@@ -432,7 +450,8 @@ function API(name = 'untitled', debug = false) {
         $notification.post(
           title,
           subtitle,
-          content + `${mediaURL ? '\n多媒体:' + mediaURL : ''}`, {
+          content + `${mediaURL ? '\n多媒体:' + mediaURL : ''}`,
+          {
             url: openURL,
           },
         );

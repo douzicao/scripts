@@ -1,159 +1,139 @@
 /*
-青龙 docker 每日自动同步 boxjs cookie
-40 * * * https://raw.githubusercontent.com/dompling/Script/master/jd/ql_cookie_sync.js
+Author: 2Ya
+Description: 本脚本使用的野比大佬的多合一签到 原脚本地址：https://raw.githubusercontent.com/NobyDa/Script/master/JD-DailyBonus/JD_DailyBonus.js
+Github: https://github.com/domping
+===================
+【task】
+===================
+1 0 * * * https://raw.githubusercontent.com/dompling/Script/master/jd/JD_extra_sign.js
+
+[获取 ck]
+使用方式：复制 https://home.m.jd.com/myJd/newhome.action 到浏览器打开 ，在个人中心自动获取 cookie，
+若弹出成功则正常使用。否则继续再此页面继续刷新一下试试
+===================
+[MITM]
+hostname = wq.jd.com
+
+【Surge脚本配置】:
+===================
+[Script]
+获取京东Cookie = type=http-request,pattern=^https:\/\/wq\.jd\.com\/user_new\/info\/GetJDUserInfoUnion,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/dompling/Script/master/jd/JD_extra_cookie.js,script-update-interval=0
+
+===================
+【Loon脚本配置】:
+===================
+[Script]
+http-request https:\/\/wq\.jd\.com\/user_new\/info\/GetJDUserInfoUnion tag=获取京东Cookie, script-path=https://raw.githubusercontent.com/dompling/Script/master/jd/JD_extra_cookie.js
+
+===================
+【 QX  脚本配置 】 :
+===================
+
+[rewrite_local]
+https:\/\/wq\.jd\.com\/user_new\/info\/GetJDUserInfoUnion  url script-request-header https://raw.githubusercontent.com/dompling/Script/master/jd/JD_extra_cookie.js
+
  */
-
-const $ = new API('ql', true);
-
-const title = '🐉 通知提示';
-
-const jd_cookies = JSON.parse($.read('#CookiesJD') || '[]');
-
-let remark = {};
+const scriptURL =
+  'https://raw.githubusercontent.com/NobyDa/Script/master/JD-DailyBonus/JD_DailyBonus.js';
+const APIKey = 'CookiesJD';
+const CookieJD = '#CookieJD';
+const CookieJD2 = '#CookieJD2';
+let boxjs = 'boxjs.net';
+const $ = new API(APIKey, true);
+const CacheKey = `#${APIKey}`;
+let cookies = [];
+let cookie1 = $.read(CookieJD) || '';
+let cookie2 = $.read(CookieJD2) || '';
+let script = '',
+  script_text = '';
 try {
-  const _remark = JSON.parse(
-    JSON.parse($.read('#jd_ck_remark') || '{}').remark || '[]',
-  );
-
-  _remark.forEach((item) => {
-    remark[item.username] = item;
-  });
-} catch (e) {
-  console.log(e);
-}
-
-function getUsername(ck) {
-  if (!ck) return '';
-  return decodeURIComponent(ck.match(/pt_pin=(.+?);/)[1]);
-}
-
-async function getScriptUrl() {
-  const response = await $.http.get({
-    url: 'https://raw.githubusercontent.com/dompling/Script/master/jd/ql_api.js',
-  });
-  return response.body;
-}
-
-(async () => {
-  const ql_script = (await getScriptUrl()) || '';
-  eval(ql_script);
-  await $.ql.login();
-
-  const cookiesRes = await $.ql.select();
-  const ids = cookiesRes.data.map((item) => item.id);
-  await $.ql.delete(ids);
-  const wskeyRes = await $.ql.select('JD_WSCK');
-  await $.ql.delete(wskeyRes.data.map((item) => item.id));
-  $.log('清空 cookie 和 wskey');
-
-  const addData = [];
-  const wsCookie = [];
-  for (const jd_cookie of jd_cookies) {
-    const username = getUsername(jd_cookie.cookie);
-    let remarks = '';
-    if (remark[username]) {
-      remarks = remark[username].nickname;
-
-      remarks += `&${remark[username].remark}`;
-      if (remark[username].qywxUserId)
-        remarks += `&${remark[username].qywxUserId}`;
-    } else {
-      remarks = username;
-    }
-    addData.push({ name: 'JD_COOKIE', value: jd_cookie.cookie, remarks });
-    if (jd_cookie.wskey) {
-      wsCookie.push({
-        name: 'JD_WSCK',
-        remarks: remarks.split('&')[0],
-        value: `${jd_cookie.wskey}pt_pin=${encodeURI(username)};`,
+  cookies = getCache();
+  boxjs = $.read('#BoxJSDomain') || boxjs;
+  const ck1Name = getUsername(cookie1);
+  const ck2Name = getUsername(cookie2);
+  if (ck1Name) {
+    const push1 = cookies.find((item) => {
+      const u = getUsername(item.cookie);
+      return u === ck1Name;
+    });
+    if (!push1) {
+      cookies.push({
+        userName: ck1Name,
+        cookie: push1,
       });
     }
   }
-  if (addData.length) await $.ql.add(addData);
-  if (wsCookie.length) await $.ql.add(wsCookie);
-
-  const _cookiesRes = await $.ql.select();
-  const _ids = [];
-  for (let index = 0; index < _cookiesRes.data.length; index++) {
-    const item = _cookiesRes.data[index];
-    const response = await TotalBean(item.value);
-    if (response.retcode !== '0') _ids.push(item);
+  if (ck2Name) {
+    const push2 = cookies.find((item) => {
+      const u = getUsername(item.cookie);
+      return u === ck2Name;
+    });
+    if (!push2) {
+      cookies.push({
+        userName: ck2Name,
+        cookie: push2,
+      });
+    }
   }
+} catch (e) {
+  $.log(e);
+}
 
-  if (_ids.length > 0) {
-    const ids = _ids.map((item) => item.id);
-    console.log(
-      `过期账号：${_ids
-        .map((item) => item.remarks || getUsername(item.value))
-        .join(`\n`)}`,
-    );
-    await $.ql.disabled(ids);
+(async () => {
+  const saveCookies = [];
+  const len = cookies.length;
+  const n = 2; //假设每行显示4个
+  const lineNum = len % n === 0 ? len / n : Math.floor(len / n + 1);
+  for (let i = 0; i < lineNum; i++) {
+    saveCookies.push(cookies.slice(i * n, i * n + n));
   }
-
-  const cookieText = jd_cookies.map((item) => item.userName).join(`\n`);
-  if ($.read('mute') !== 'true') {
-    return $.notify(title, '', `已同步账号： ${cookieText}`);
+  script = (await getScriptUrl(scriptURL)) || '';
+  for (let index = 0; index < saveCookies.length; index++) {
+    const item = saveCookies[index];
+    $.write(item[0].cookie, CookieJD);
+    $.log(`京东账号：${item[0].userName}`);
+    if (item.length > 1) {
+      $.write(item[1].cookie, CookieJD2);
+      $.log(`京东账号：${item[1].userName}`);
+    }
+    const cached_logs = [];
+    await new Promise((rslve) => {
+      script_text = script
+        .replace(/\$done/g, 'rslve')
+        .replace(/\$\.done/g, 'rslve');
+      $.log('执行多合一签到');
+      try {
+        eval(script_text);
+      } catch (e) {
+        cached_logs.push(e);
+        rslve(e);
+      }
+    });
+    $.log(cached_logs);
   }
 })()
   .catch((e) => {
     $.log(JSON.stringify(e));
   })
   .finally(() => {
+    $.write(cookie1, CookieJD);
+    $.write(cookie2, CookieJD2);
     $.done();
   });
 
-async function TotalBean(Cookie) {
-  const opt = {
-    url: 'https://me-api.jd.com/user_new/info/GetJDUserInfoUnion?sceneval=2&sceneval=2&g_login_type=1&g_ty=ls',
-    headers: {
-      cookie: Cookie,
-      Referer: 'https://home.m.jd.com/',
-    },
-  };
-  return $.http.get(opt).then((response) => {
-    try {
-      return JSON.parse(response.body);
-    } catch (e) {
-      return {};
-    }
-  });
+async function getScriptUrl(uri) {
+  const response = await $.http.get({ url: uri });
+  return response.body;
 }
 
-function getURL(api, key = 'api') {
-  return `${baseURL}/${key}/${api}`;
+function getCache() {
+  var cache = $.read(CacheKey) || '[]';
+  return JSON.parse(cache);
 }
 
-function login() {
-  const opt = {
-    headers,
-    url: getURL('login'),
-    body: JSON.stringify(account),
-  };
-  return $.http.post(opt).then((response) => JSON.parse(response.body));
-}
-
-function getCookies(searchValue = 'JD_COOKIE') {
-  const opt = { url: getURL(urlStr) + `?searchValue=${searchValue}`, headers };
-  return $.http.get(opt).then((response) => JSON.parse(response.body));
-}
-
-function addCookies(cookies) {
-  const opt = { url: getURL(urlStr), headers, body: JSON.stringify(cookies) };
-  return $.http.post(opt).then((response) => JSON.parse(response.body));
-}
-
-function delCookie(ids) {
-  const opt = { url: getURL(urlStr), headers, body: JSON.stringify(ids) };
-  return $.http.delete(opt).then((response) => JSON.parse(response.body));
-}
-
-function disabled(ids) {
-  const opt = {
-    url: getURL(`${urlStr}/disable`),
-    headers,
-    body: JSON.stringify(ids),
-  };
-  return $.http.put(opt).then((response) => JSON.parse(response.body));
+function getUsername(ck) {
+  if (!ck) return '';
+  return ck.match(/pt_pin=(.+?);/)[1];
 }
 
 function ENV() {
@@ -170,8 +150,7 @@ function ENV() {
 function HTTP(defaultOptions = { baseURL: '' }) {
   const { isQX, isLoon, isSurge, isScriptable, isNode } = ENV();
   const methods = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH'];
-  const URL_REGEX =
-    /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
+  const URL_REGEX = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
   function send(method, options) {
     options = typeof options === 'string' ? { url: options } : options;
@@ -239,13 +218,12 @@ function HTTP(defaultOptions = { baseURL: '' }) {
         })
       : null;
 
-    return (
-      timer
-        ? Promise.race([timer, worker]).then((res) => {
-            clearTimeout(timeoutid);
-            return res;
-          })
-        : worker
+    return (timer
+      ? Promise.race([timer, worker]).then((res) => {
+          clearTimeout(timeoutid);
+          return res;
+        })
+      : worker
     ).then((resp) => events.onResponse(resp));
   }
 

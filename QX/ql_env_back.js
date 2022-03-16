@@ -7,26 +7,6 @@ const $ = new API('ql', true);
 
 const title = '🐉 通知提示';
 
-const jd_cookies = JSON.parse($.read('#CookiesJD') || '[]');
-
-let remark = {};
-try {
-  const _remark = JSON.parse(
-    JSON.parse($.read('#jd_ck_remark') || '{}').remark || '[]',
-  );
-
-  _remark.forEach((item) => {
-    remark[item.username] = item;
-  });
-} catch (e) {
-  console.log(e);
-}
-
-function getUsername(ck) {
-  if (!ck) return '';
-  return decodeURIComponent(ck.match(/pt_pin=(.+?);/)[1]);
-}
-
 async function getScriptUrl() {
   const response = await $.http.get({
     url: 'https://raw.githubusercontent.com/dompling/Script/master/jd/ql_api.js',
@@ -38,61 +18,14 @@ async function getScriptUrl() {
   const ql_script = (await getScriptUrl()) || '';
   eval(ql_script);
   await $.ql.login();
-
-  const cookiesRes = await $.ql.select();
-  const ids = cookiesRes.data.map((item) => item.id);
-  await $.ql.delete(ids);
-  const wskeyRes = await $.ql.select('JD_WSCK');
-  await $.ql.delete(wskeyRes.data.map((item) => item.id));
-  $.log('清空 cookie 和 wskey');
-
-  const addData = [];
-  const wsCookie = [];
-  for (const jd_cookie of jd_cookies) {
-    const username = getUsername(jd_cookie.cookie);
-    let remarks = '';
-    if (remark[username]) {
-      remarks = remark[username].nickname;
-
-      remarks += `&${remark[username].remark}`;
-      if (remark[username].qywxUserId)
-        remarks += `&${remark[username].qywxUserId}`;
-    } else {
-      remarks = username;
-    }
-    addData.push({ name: 'JD_COOKIE', value: jd_cookie.cookie, remarks });
-    if (jd_cookie.wskey) {
-      wsCookie.push({
-        name: 'JD_WSCK',
-        remarks: remarks.split('&')[0],
-        value: `${jd_cookie.wskey}pt_pin=${encodeURI(username)};`,
-      });
-    }
-  }
-  if (addData.length) await $.ql.add(addData);
-  if (wsCookie.length) await $.ql.add(wsCookie);
-
-  const _cookiesRes = await $.ql.select();
-  const _ids = [];
-  for (let index = 0; index < _cookiesRes.data.length; index++) {
-    const item = _cookiesRes.data[index];
-    const response = await TotalBean(item.value);
-    if (response.retcode !== '0') _ids.push(item);
-  }
-
-  if (_ids.length > 0) {
-    const ids = _ids.map((item) => item.id);
-    console.log(
-      `过期账号：${_ids
-        .map((item) => item.remarks || getUsername(item.value))
-        .join(`\n`)}`,
-    );
-    await $.ql.disabled(ids);
-  }
-
-  const cookieText = jd_cookies.map((item) => item.userName).join(`\n`);
+  const envs = await $.ql.select('');
+  $.write(JSON.stringify(envs.data), 'env');
   if ($.read('mute') !== 'true') {
-    return $.notify(title, '', `已同步账号： ${cookieText}`);
+    return $.notify(
+      title,
+      '已备份环境变量',
+      `备份个数：${envs.data.length} 个`,
+    );
   }
 })()
   .catch((e) => {
@@ -101,60 +34,6 @@ async function getScriptUrl() {
   .finally(() => {
     $.done();
   });
-
-async function TotalBean(Cookie) {
-  const opt = {
-    url: 'https://me-api.jd.com/user_new/info/GetJDUserInfoUnion?sceneval=2&sceneval=2&g_login_type=1&g_ty=ls',
-    headers: {
-      cookie: Cookie,
-      Referer: 'https://home.m.jd.com/',
-    },
-  };
-  return $.http.get(opt).then((response) => {
-    try {
-      return JSON.parse(response.body);
-    } catch (e) {
-      return {};
-    }
-  });
-}
-
-function getURL(api, key = 'api') {
-  return `${baseURL}/${key}/${api}`;
-}
-
-function login() {
-  const opt = {
-    headers,
-    url: getURL('login'),
-    body: JSON.stringify(account),
-  };
-  return $.http.post(opt).then((response) => JSON.parse(response.body));
-}
-
-function getCookies(searchValue = 'JD_COOKIE') {
-  const opt = { url: getURL(urlStr) + `?searchValue=${searchValue}`, headers };
-  return $.http.get(opt).then((response) => JSON.parse(response.body));
-}
-
-function addCookies(cookies) {
-  const opt = { url: getURL(urlStr), headers, body: JSON.stringify(cookies) };
-  return $.http.post(opt).then((response) => JSON.parse(response.body));
-}
-
-function delCookie(ids) {
-  const opt = { url: getURL(urlStr), headers, body: JSON.stringify(ids) };
-  return $.http.delete(opt).then((response) => JSON.parse(response.body));
-}
-
-function disabled(ids) {
-  const opt = {
-    url: getURL(`${urlStr}/disable`),
-    headers,
-    body: JSON.stringify(ids),
-  };
-  return $.http.put(opt).then((response) => JSON.parse(response.body));
-}
 
 function ENV() {
   const isQX = typeof $task !== 'undefined';
