@@ -38,7 +38,7 @@
           "name": "青龙登陆的域名或IP:端口号",
           "val": "",
           "type": "text",
-          "placeholder": "111.21.0.32:5700"
+          "placeholder": "192.168.123.10:5700"
         },
         {
           "id": "@ql.client_id",
@@ -70,23 +70,23 @@
         "https://raw.githubusercontent.com/dompling/Script/master/image/1.jpeg"
       ],
       "author": "@dompling",
-      "repo": "https://github.com/dompling/Script/blob/master/jd/ql_cookie_sync.js",
+      "repo": "https://github.com/douzicao/scripts/blob/main/QX/ql_cookie_sync.js",
       "scripts": [
         {
           "name": "青龙同步到BoxJS(京东 Ck)",
-          "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/ql_sync_box.js"
+          "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/ql_sync_box.js"
         },
         {
           "name": "BoxJS同步到青龙(京东 Ck)",
-          "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/ql_cookie_sync.js"
+          "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/ql_cookie_sync.js"
         },
         {
           "name": "备份环境变量",
-          "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/ql_env_back.js"
+          "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/ql_env_back.js"
         },
         {
           "name": "恢复备份环境变量",
-          "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/ql_env_upload.js"
+          "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/ql_env_upload.js"
         }
       ],
       "descs_html": [
@@ -148,8 +148,8 @@
         "https://raw.githubusercontent.com/Orz-3/task/master/jd.png"
       ],
       "author": "@dompling",
-      "repo": "https://github.com/dompling/Script/blob/master/jd/jd_cookie_search.js",
-      "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/jd_cookie_search.js"
+      "repo": "https://github.com/douzicao/scripts/blob/main/QX/jd_cookie_search.js",
+      "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/jd_cookie_search.js"
     },
     {
       "id": "JD_Cookies",
@@ -193,15 +193,15 @@
         "https://raw.githubusercontent.com/Orz-3/task/master/jd.png"
       ],
       "author": "@dompling",
-      "repo": "https://github.com/dompling/Script/blob/master/jd/JD_extra.js",
+      "repo": "https://github.com/douzicao/scripts/blob/main/QX/JD_extra.js",
       "scripts": [
         {
           "name": "京东签到",
-          "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/JD_extra_sign.js"
+          "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/JD_extra_sign.js"
         },
         {
           "name": "删除相关 ck",
-          "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/jd_ck_del.js"
+          "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/jd_ck_del.js"
         }
       ]
     }
