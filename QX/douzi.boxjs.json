@@ -7,19 +7,50 @@
   "apps": [
     {
       "id": "ql",
-      "name": "青龙 Cookie 同步",
+      "name": "青龙同步",
       "keys": [
         "@ql.ip",
+        "@ql.client_id",
+        "@ql.client_secret",
         "@ql.username",
-        "@ql.password"
+        "@ql.password",
+        "@ql.env",
+        "@ql.mute",
+        "@ql.is_pwd"
       ],
       "settings": [
+        {
+          "id": "@ql.mute",
+          "name": "静音",
+          "val": false,
+          "type": "boolean",
+          "desc": "同步时，不会执行通知提示"
+        },
+        {
+          "id": "@ql.is_pwd",
+          "name": "开启密码登陆",
+          "val": false,
+          "type": "boolean",
+          "desc": "同步时，优先使用密码登陆"
+        },
         {
           "id": "@ql.ip",
           "name": "青龙登陆的域名或IP:端口号",
           "val": "",
           "type": "text",
           "placeholder": "111.21.0.32:5700"
+        },
+        {
+          "id": "@ql.client_id",
+          "name": "应用 Client ID",
+          "val": "",
+          "type": "text"
+        },
+        {
+          "id": "@ql.client_secret",
+          "name": "应用 Client Secret",
+          "val": "",
+          "type": "text"
         },
         {
           "id": "@ql.username",
@@ -32,55 +63,43 @@
           "name": "密码",
           "val": "",
           "type": "text"
-        },
-        {
-          "id": "@ql.name",
-          "name": "环境变量名",
-          "val": "",
-          "type": "text",
-          "placeholder": "青龙的环境变量名称"
-        },
-        {
-          "id": "@ql.value",
-          "name": "环境变量值",
-          "val": "",
-          "type": "text",
-          "placeholder": "上传的环境变量值，可以为 BoxJS 的缓存 key"
         }
       ],
       "icons": [
-        "https://qinglong.whyour.cn/qinglong.png",
-        "https://qinglong.whyour.cn/qinglong.png"
+        "https://raw.githubusercontent.com/dompling/Script/master/image/1.jpeg",
+        "https://raw.githubusercontent.com/dompling/Script/master/image/1.jpeg"
       ],
       "author": "@dompling",
-      "repo": "https://github.com/douzicao/scripts/blob/main/QX/ql_cookie_sync.js",
+      "repo": "https://github.com/dompling/Script/blob/master/jd/ql_cookie_sync.js",
       "scripts": [
         {
-          "name": "BoxJS同步到青龙(京东 Ck)",
-          "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/ql_cookie_sync.js"
-        },
-        {
           "name": "青龙同步到BoxJS(京东 Ck)",
-          "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/ql_sync_box.js"
+          "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/ql_sync_box.js"
         },
         {
-          "name": "同步环境变量",
-          "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/ql_sync_env.js"
+          "name": "BoxJS同步到青龙(京东 Ck)",
+          "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/ql_cookie_sync.js"
+        },
+        {
+          "name": "备份环境变量",
+          "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/ql_env_back.js"
+        },
+        {
+          "name": "恢复备份环境变量",
+          "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/ql_env_upload.js"
         }
       ],
       "descs_html": [
         "青龙 docker 的安装方式请移步 tg 频道",
         "青龙 docker 作者仓库：【<a href=\"https://github.com/whyour\">github</a>】",
-        "青龙 docker 频道：【<a href=\"https://t.me/qiongqiya\">电报频道</a>】"
+        "青龙 docker 频道：【<a href=\"https://t.me/qiongqiya\">电报频道</a>】",
+        "应用client_id,client_secret（openapi）方式；请去 设置->应用 中添加相关参数，优先以 openapi 方式同步"
       ]
     },
     {
       "id": "JD_Cookies_remark",
       "name": "登陆助手",
-      "keys": [
-        "@jd_ck_remark.remark",
-        "@jd_ck_remark.rem"
-      ],
+      "keys": ["CookieIndex", "@jd_ck_remark.remark", "@jd_ck_remark.mute"],
       "descs_html": [
         "请勿随意在输入框修改内容，建议通过脚本去获取cookie，若要修改，请按照JSON 格式修改（<a href=\"https://www.bejson.com/json/format\">可使用此JSON校验</a> ，或点击右上角按钮🔘进行校验(如有弹窗提示则为异常JSON)）。",
         "脚本地址【<a href=\"https://jdsharedresourcescdn.azureedge.net/jdresource/JD_extra_cookie.js\">京东多 CK获取</a>】,并按照此脚本注释进行配置",
@@ -89,6 +108,22 @@
         "可以根据 下标、username、nickname、status 字段检索京东多账号 ck"
       ],
       "settings": [
+        {
+          "id": "@jd_ck_remark.mute",
+          "name": "静音",
+          "val": false,
+          "type": "boolean",
+          "desc": "不会执行通知提示"
+        },
+        {
+          "id": "CookieIndex",
+          "name": "默认账号",
+          "val": 0,
+          "type": "text",
+          "autoGrow": false,
+          "rows": 2,
+          "placeholder": "cookie 下标（0）"
+        },
         {
           "id": "@jd_ck_remark.keyword",
           "name": "检索条件",
@@ -113,16 +148,13 @@
         "https://raw.githubusercontent.com/Orz-3/task/master/jd.png"
       ],
       "author": "@dompling",
-      "repo": "https://github.com/douzicao/scripts/blob/main/QX/jd_cookie_search.js",
-      "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/jd_cookie_search.js"
+      "repo": "https://github.com/dompling/Script/blob/master/jd/jd_cookie_search.js",
+      "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/jd_cookie_search.js"
     },
     {
       "id": "JD_Cookies",
-      "name": "多 Ck 管理",
-      "keys": [
-        "CookiesJD",
-        "cks_get_mute"
-      ],
+      "name": "京东账号",
+      "keys": ["CookiesJD", "cks_get_mute"],
       "descs_html": [
         "请勿随意在输入框修改内容，建议通过脚本去获取cookie，若要修改，请按照JSON 格式修改（<a href=\"https://www.bejson.com/json/format\">可使用此JSON校验</a> ，或点击右上角按钮🔘进行校验(如有弹窗提示则为异常JSON)）。",
         "示例：[{\"userName\":\"jd_xxx\",\"cookie\":\"pt_key=AAJ;pt_pin=jd_xxx;\"},{\"userName\":\"jd_66\",\"cookie\":\"pt_key=AAJ;pt_pin=jd_66;\"}]",
@@ -161,96 +193,17 @@
         "https://raw.githubusercontent.com/Orz-3/task/master/jd.png"
       ],
       "author": "@dompling",
-      "repo": "https://github.com/douzicao/scripts/blob/main/QX/JD_extra_cookie.js",
+      "repo": "https://github.com/dompling/Script/blob/master/jd/JD_extra.js",
       "scripts": [
         {
-          "name": "青龙同步到BoxJS(京东 Ck)",
-          "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/ql_sync_box.js"
+          "name": "京东签到",
+          "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/JD_extra_sign.js"
         },
         {
           "name": "删除相关 ck",
-          "script": "https://raw.githubusercontent.com/douzicao/scripts/main/QX/jd_ck_del.js"
+          "script": "https://raw.githubusercontent.com/dompling/Script/master/jd/jd_ck_del.js"
         }
       ]
-    },
-{
-        "id": "jf",
-        "name": "京粉转链",
-        "desc": "在京东比价中增加京粉转链，如显示有转链信息（即使显示无详细返利信息）则可点击跳转跟单，如未显示返利信息则为未参加推广的商品，不会跳转。",
-        "keys": ["jfCookie", "jfUseConvert", "jfAutoScheme", "jfusejsapp", "jfChooseScheme", "chooseBrowser", "jfDIYScheme"],
-        "settings": [
-          {
-            "id": "jfUseConvert",
-            "name": "开启转链",
-            "val": true,
-            "type": "boolean",
-            "desc": "是否开启京粉转链？"
-          },
-          {
-            "id": "jfAutoScheme",
-            "name": "自动目标",
-            "val": true,
-            "type": "boolean",
-            "desc": "开启后如转链成功有返利，点击通知跳转正在使用的 app，关闭则跳转自选的 app。"
-          },
-          {
-            "id": "jfChooseScheme",
-            "name": "自选目标",
-            "val": "jd",
-            "type": "radios",
-            "desc": "自选跳转的 app，仅在自动目标关闭时有效。",
-            "items": [
-                { "key": "jd", "label": "京东" },
-                { "key": "jx", "label": "京喜" },
-                { "key": "jk", "label": "京东健康" }, 
-                { "key": "js", "label": "京东极速版" },
-                { "key": "browser", "label": "浏览器" }
-            ]
-          },
-          {
-            "id": "jfusejsapp",
-            "name": "京东极速版使用 app",
-            "val": false,
-            "type": "boolean",
-            "desc": "开启时对目标为京东极速版则跳转京东极速版，关闭则跳转浏览器，默认关闭。注意：即使开启，由于极速版 URL Scheme 问题，跳转后只能先加入购物车，返回原购物车界面进行结账，否则无法使用极速版优惠券。"
-          },
-          {
-            "id": "chooseBrowser",
-            "name": "浏览器目标",
-            "val": "Safari",
-            "type": "radios",
-            "desc": "自选跳转的浏览器。",
-            "items": [
-                { "key": "Safari", "label": "Safari" },
-                { "key": "Alook", "label": "Alook" },
-                { "key": "DIY", "label": "自定义" }
-            ]
-          },
-          {
-            "id": "jfDIYScheme",
-            "name": "自定义浏览器",
-            "val": "",
-            "type": "textarea",
-            "placeholder": "Foxok://url?", 
-            "autoGrow": true,
-            "rows": 2,
-            "desc": "自定义跳转浏览器 URL Scheme，拼接后会是 diy+convertURL，如 Foxok://url?convertURL"
-          },
-          {
-            "id": "jfCookie",
-            "name": "Cookie",
-            "type": "textarea",
-            "autoGrow": true,
-            "rows": 2,
-            "desc": "使用京粉的京东账号 Cookie，如不填则为京东系脚本中的第一个 Cookie。"
-          }
-        ],
-        "author": "@jfConvert",
-        "repo": "https://jingfen.jd.com/html/index.html",
-        "icons": [
-          "https://is5-ssl.mzstatic.com/image/thumb/Purple125/v4/eb/a8/f6/eba8f63a-b550-4586-b5d3-f22c0718ef81/source/100x100bb.jpg",
-          "https://is5-ssl.mzstatic.com/image/thumb/Purple125/v4/eb/a8/f6/eba8f63a-b550-4586-b5d3-f22c0718ef81/source/100x100bb.jpg"
-        ]
-      }
+    }
   ]
 }
