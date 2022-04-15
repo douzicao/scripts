@@ -6,10 +6,9 @@ if [ ! -d "/ql" ];then
 else
   dir_root=/ql
 fi
-dir_bot=$dir_root/jbot
-dir_repo=$dir_root/repo
-file_bot_setting_user=$dir_root/config/bot.json
-repo_path="${dir_repo}/SuMaiKaDe_bot"
+dir_bot=$dir_root/data/jbot
+dir_repo=$dir_root/data/repo
+file_bot_setting_user=$dir_root/data/config/bot.json
 url="git@github.com:douzicao/toolsbot.git"
 repo_path="${dir_repo}/dockerbot"
 
@@ -71,17 +70,17 @@ echo -e "2、下载bot所需文件...\n"
 if [ -d ${repo_path}/.git ]; then
     jbot_md5sum_old=$(cd $dir_bot; find . -type f \( -name "*.py" -o -name "*.ttf" \) | xargs md5sum)
     git_pull_scripts ${repo_path}
-    cp -rf "$repo_path/jbot" $dir_root
+    cp -rf "$repo_path/jbot" $dir_root/data
     jbot_md5sum_new=$(cd $dir_bot; find . -type f \( -name "*.py" -o -name "*.ttf" \) | xargs md5sum)
     if [[ "$jbot_md5sum_new" != "$jbot_md5sum_old" ]]; then
         notify_telegram "检测到BOT程序有更新，BOT将重启。\n\n友情提醒：如果当前有从BOT端发起的正在运行的任务，将被中断。\n\n本条消息由jup程序通过BOT发出。"
     fi
 else
   git_clone_scripts ${url} ${repo_path} "main"
-  cp -rf "$repo_path/jbot" $dir_root
+  cp -rf "$repo_path/jbot" $dir_root/data
 fi
-if [[ ! -f "$dir_root/config/bot.json" ]]; then
-  cp -f "$repo_path/config/bot.json" "$dir_root/config"
+if [[ ! -f "$dir_root/data/config/bot.json" ]]; then
+  cp -f "$repo_path/data/config/bot.json" "$dir_root/data/config"
 fi
 echo -e "\nbot文件下载成功...\n"
 echo -e "3、安装python3依赖...\n"
@@ -90,23 +89,23 @@ pip3 config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 pip3 --default-timeout=100 install -r requirements.txt --no-cache-dir
 echo -e "\npython3依赖安装成功...\n"
 echo -e "4、启动bot程序...\n"
-cd $dir_root
-if [ ! -d "/ql/log/bot" ]; then
-    mkdir $dir_root/log/bot
+cd $dir_root/data
+if [ ! -d "/ql/data/log/bot" ]; then
+    mkdir $dir_root/data/log/bot
 fi
-if [[ -z $(grep -E "123456789" $dir_root/config/bot.json) ]]; then
+if [[ -z $(grep -E "123456789" $dir_root/data/config/bot.json) ]]; then
     if [ -d "/ql" ]; then
         ps -ef | grep "python3 -m jbot" | grep -v grep | awk '{print $1}' | xargs kill -9 2>/dev/null
-        nohup python3 -m jbot >$dir_root/log/bot/bot.log 2>&1 &
+        nohup python3 -m jbot >$dir_root/data/log/bot/bot.log 2>&1 &
         echo -e "bot启动成功...\n"
     else
         cd $dir_bot
         pm2 start ecosystem.config.js
-        cd $dir_root
+        cd $dir_root/data
         pm2 restart jbot
         echo -e "bot启动成功...\n"
     fi
 else
-    echo -e  "似乎 $dir_root/config/bot.json 还未修改为你自己的信息，可能是首次部署容器，因此不启动Telegram Bot...\n配置好bot.json后再次运行本程序即可启动"
+    echo -e  "似乎 $dir_root/data/config/bot.json 还未修改为你自己的信息，可能是首次部署容器，因此不启动Telegram Bot...\n配置好bot.json后再次运行本程序即可启动"
 fi
 exit 0
