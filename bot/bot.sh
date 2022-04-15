@@ -4,12 +4,11 @@
 if [ ! -d "/ql" ];then
   dir_root=/jd
 else
-  dir_root=/ql
+  dir_root=/ql/data
 fi
 dir_bot=$dir_root/jbot
 dir_repo=$dir_root/repo
 file_bot_setting_user=$dir_root/config/bot.json
-repo_path="${dir_repo}/SuMaiKaDe_bot"
 url="git@github.com:douzicao/bot.git"
 repo_path="${dir_repo}/dockerbot"
 
@@ -91,7 +90,7 @@ pip3 --default-timeout=100 install -r requirements.txt --no-cache-dir
 echo -e "\npython3依赖安装成功...\n"
 echo -e "4、启动bot程序...\n"
 cd $dir_root
-if [ ! -d "/ql/log/bot" ]; then
+if [ ! -d "/ql/data/log/bot" ]; then
     mkdir $dir_root/log/bot
 fi
 if [[ -z $(grep -E "123456789" $dir_root/config/bot.json) ]]; then
