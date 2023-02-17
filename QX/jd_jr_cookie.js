@@ -1,185 +1,110 @@
 /*
-青龙 docker 每日自动同步 boxjs cookie
-40 * * * https://raw.githubusercontent.com/dompling/Script/master/jd/ql_cookie_sync.js
- */
+Author: 2Ya
+Github: https://github.com/domping
 
-const $ = new API('ql', true);
+===================
+下载京东金融，进入app获取
+===================
 
-const title = '🐉 通知提示';
+===================
+[MITM]
+hostname = ms.jr.jd.com
 
-const jd_cookies = JSON.parse($.read('#CookiesJD') || '[]');
+【Surge脚本配置】:
+===================
+[Script]
+获取京东金融领豆Cookie = type=http-request,pattern=^https?:\/\/ms\.jr\.jd\.com\/gw\/generic\/uc\/newna\/m\/userstat,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/dompling/Script/master/jd/jd_jr_cookie.js,script-update-interval=0
 
-let remark = {};
-try {
-  const _remark = JSON.parse(
-    JSON.parse($.read('#jd_ck_remark') || '{}').remark || '[]'
-  );
+===================
+【Loon脚本配置】:
+===================
+[Script]
+http-request ^https?:\/\/ms\.jr\.jd\.com\/gw\/generic\/uc\/newna\/m\/userstat tag=获取京东金融领豆Cookie, script-path=https://raw.githubusercontent.com/dompling/Script/master/jd/jd_jr_cookie.js
 
-  _remark.forEach((item) => {
-    remark[item.username] = item;
-  });
-} catch (e) {
-  console.log(e);
-}
+===================
+【 QX  脚本配置 】 :
+===================
 
-function getUsername(ck) {
-  if (!ck) return '';
-  return decodeURIComponent(ck.match(/pin=(.+?);/)[1]);
-}
+[rewrite_local]
+^https?:\/\/ms\.jr\.jd\.com\/gw\/generic\/uc\/newna\/m\/userstat  url script-request-header https://raw.githubusercontent.com/dompling/Script/master/jd/jd_jr_cookie.js
 
-async function getScriptUrl() {
-  const response = await $.http.get({
-    url: 'https://raw.githubusercontent.com/dompling/Script/master/jd/ql_api.js',
-  });
-  return response.body;
-}
+ */
 
-(async () => {
-  const ql_script = (await getScriptUrl()) || '';
-  eval(ql_script);
-  await $.ql.login();
-
-  const cookiesRes = await $.ql.select();
-  const ids = cookiesRes.data.map((item) => item.id);
-  await $.ql.delete(ids);
-  const wskeyRes = await $.ql.select('JD_WSCK');
-  await $.ql.delete(wskeyRes.data.map((item) => item.id));
-  $.log('清空 cookie 和 wskey');
-
-  const addData = [];
-  const wsCookie = [];
-  for (const jd_cookie of jd_cookies) {
-    const username = getUsername(jd_cookie.cookie);
-    let remarks = '';
-    if (remark[username]) {
-      remarks = remark[username].nickname;
-
-      remarks += `&${remark[username].remark}`;
-      if (remark[username].qywxUserId)
-        remarks += `&${remark[username].qywxUserId}`;
-    } else {
-      remarks = username;
-    }
-    addData.push({ name: 'JD_COOKIE', value: jd_cookie.cookie, remarks });
-    if (jd_cookie.wskey) {
-      wsCookie.push({
-        name: 'JD_WSCK',
-        remarks: remarks.split('&')[0],
-        value:
-          jd_cookie.wskey.indexOf('pt_pin') !== -1
-            ? jd_cookie.wskey
-            : `${jd_cookie.wskey}pt_pin=${encodeURI(username)};`,
-      });
+const $ = new API("jd_jr", true);
+const title = "金融领豆";
+const cookiesKey = "cookies";
+const bodyKey = "bodys";
+const cookies = JSON.parse($.read(cookiesKey) || "[]");
+const bodys = JSON.parse($.read(bodyKey) || "{}");
+async function getCookies() {
+  if ($request.headers && $request.url.indexOf("m/userstat") > -1) {
+    const currentCk = $request.headers["Cookie"] || $request.headers["cookie"];
+    const currentBody = $request.body;
+    const saveCookie = { phoneNumber: "", username: "" };
+    if (currentCk.match(/(pt_key=.+?pt_pin=|pt_pin=.+?pt_key=)/)) {
+      const cookieValue =
+        currentCk.match(/pt_key=.+?;/) + currentCk.match(/pt_pin=.+?;/);
+      const userName = cookieValue.match(/pt_pin=(.+?);/)[1];
+      bodys[userName] = currentBody;
+      saveCookie.username = userName;
+      if (cookies.find((item) => item.username === userName)) return;
+      const pRes = await getPhoneNumber(cookieValue);
+      if(pRes.resultCode===0){
+         saveCookie.phoneNumber = pRes.resultData.mobile;
+      }
+      cookies.push(saveCookie);
+      $.log(cookies);
+      const cacheValue = JSON.stringify(cookies, null, "\t");
+      $.write(cacheValue, cookiesKey);
+      $.write(JSON.stringify(bodys), bodyKey);
+      $.notify(title, "", `${userName}：获取Cookie成功 🎉`);
     }
   }
-  if (addData.length) await $.ql.add(addData);
-  if (wsCookie.length) await $.ql.add(wsCookie);
+}
 
-  const _cookiesRes = await $.ql.select();
-  const _ids = [];
-  for (let index = 0; index < _cookiesRes.data.length; index++) {
-    const item = _cookiesRes.data[index];
-    const response = await TotalBean(item.value);
-    if (response.retcode !== '0') _ids.push(item);
-  }
-
-  if (_ids.length > 0) {
-    const ids = _ids.map((item) => item.id);
-    console.log(
-      `过期账号：${_ids
-        .map((item) => item.remarks || getUsername(item.value))
-        .join(`\n`)}`
-    );
-    await $.ql.disabled(ids);
-  }
-
-  const cookieText = jd_cookies.map((item) => item.userName).join(`\n`);
-  if ($.read('mute') !== 'true') {
-    return $.notify(title, '', `已同步账号： ${cookieText}`);
-  }
-})()
-  .catch((e) => {
-    $.log(JSON.stringify(e));
-  })
-  .finally(() => {
-    $.done();
-  });
-
-async function TotalBean(Cookie) {
+function getPhoneNumber(cookie) {
   const opt = {
-    url: 'https://me-api.jd.com/user_new/info/GetJDUserInfoUnion?sceneval=2&sceneval=2&g_login_type=1&g_ty=ls',
+    url: `https://ms.jr.jd.com/gw/generic/jrm/h5/m/getAlreadyBindMobile`,
     headers: {
-      cookie: Cookie,
-      Referer: 'https://home.m.jd.com/',
+      Cookie: cookie,
     },
+   body:`{"clientType":"web","clientVersion":"0.0.0"}`
   };
-  return $.http.get(opt).then((response) => {
-    try {
-      return JSON.parse(response.body);
-    } catch (e) {
-      return {};
-    }
-  });
-}
-
-function getURL(api, key = 'api') {
-  return `${baseURL}/${key}/${api}`;
-}
-
-function login() {
-  const opt = {
-    headers,
-    url: getURL('login'),
-    body: JSON.stringify(account),
-  };
-  return $.http.post(opt).then((response) => JSON.parse(response.body));
-}
-
-function getCookies(searchValue = 'JD_COOKIE') {
-  const opt = { url: getURL(urlStr) + `?searchValue=${searchValue}`, headers };
   return $.http.get(opt).then((response) => JSON.parse(response.body));
 }
 
-function addCookies(cookies) {
-  const opt = { url: getURL(urlStr), headers, body: JSON.stringify(cookies) };
-  return $.http.post(opt).then((response) => JSON.parse(response.body));
-}
-
-function delCookie(ids) {
-  const opt = { url: getURL(urlStr), headers, body: JSON.stringify(ids) };
-  return $.http.delete(opt).then((response) => JSON.parse(response.body));
-}
-
-function disabled(ids) {
-  const opt = {
-    url: getURL(`${urlStr}/disable`),
-    headers,
-    body: JSON.stringify(ids),
-  };
-  return $.http.put(opt).then((response) => JSON.parse(response.body));
+try {
+  getCookies()
+    .catch((e) => {
+      $.log(e);
+    })
+    .finally(() => $.done());
+} catch (e) {
+  $.log(e);
+  $.done();
 }
 
 function ENV() {
-  const isQX = typeof $task !== 'undefined';
-  const isLoon = typeof $loon !== 'undefined';
-  const isSurge = typeof $httpClient !== 'undefined' && !isLoon;
-  const isJSBox = typeof require == 'function' && typeof $jsbox != 'undefined';
-  const isNode = typeof require == 'function' && !isJSBox;
-  const isRequest = typeof $request !== 'undefined';
-  const isScriptable = typeof importModule !== 'undefined';
+  const isQX = typeof $task !== "undefined";
+  const isLoon = typeof $loon !== "undefined";
+  const isSurge = typeof $httpClient !== "undefined" && !isLoon;
+  const isJSBox = typeof require == "function" && typeof $jsbox != "undefined";
+  const isNode = typeof require == "function" && !isJSBox;
+  const isRequest = typeof $request !== "undefined";
+  const isScriptable = typeof importModule !== "undefined";
   return { isQX, isLoon, isSurge, isNode, isJSBox, isRequest, isScriptable };
 }
 
-function HTTP(defaultOptions = { baseURL: '' }) {
+function HTTP(defaultOptions = { baseURL: "" }) {
   const { isQX, isLoon, isSurge, isScriptable, isNode } = ENV();
-  const methods = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH'];
+  const methods = ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "PATCH"];
   const URL_REGEX =
     /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
   function send(method, options) {
-    options = typeof options === 'string' ? { url: options } : options;
+    options = typeof options === "string" ? { url: options } : options;
     const baseURL = defaultOptions.baseURL;
-    if (baseURL && !URL_REGEX.test(options.url || '')) {
+    if (baseURL && !URL_REGEX.test(options.url || "")) {
       options.url = baseURL ? baseURL + options.url : options.url;
     }
     options = { ...defaultOptions, ...options };
@@ -200,7 +125,7 @@ function HTTP(defaultOptions = { baseURL: '' }) {
       worker = $task.fetch({ method, ...options });
     } else if (isLoon || isSurge || isNode) {
       worker = new Promise((resolve, reject) => {
-        const request = isNode ? require('request') : $httpClient;
+        const request = isNode ? require("request") : $httpClient;
         request[method.toLowerCase()](options, (err, response, body) => {
           if (err) reject(err);
           else
@@ -260,7 +185,7 @@ function HTTP(defaultOptions = { baseURL: '' }) {
   return http;
 }
 
-function API(name = 'untitled', debug = false) {
+function API(name = "untitled", debug = false) {
   const { isQX, isLoon, isSurge, isNode, isJSBox, isScriptable } = ENV();
   return new (class {
     constructor(name, debug) {
@@ -272,7 +197,7 @@ function API(name = 'untitled', debug = false) {
 
       this.node = (() => {
         if (isNode) {
-          const fs = require('fs');
+          const fs = require("fs");
 
           return {
             fs,
@@ -299,18 +224,18 @@ function API(name = 'untitled', debug = false) {
 
     // initialize cache
     initCache() {
-      if (isQX) this.cache = JSON.parse($prefs.valueForKey(this.name) || '{}');
+      if (isQX) this.cache = JSON.parse($prefs.valueForKey(this.name) || "{}");
       if (isLoon || isSurge)
-        this.cache = JSON.parse($persistentStore.read(this.name) || '{}');
+        this.cache = JSON.parse($persistentStore.read(this.name) || "{}");
 
       if (isNode) {
         // create a json for root cache
-        let fpath = 'root.json';
+        let fpath = "root.json";
         if (!this.node.fs.existsSync(fpath)) {
           this.node.fs.writeFileSync(
             fpath,
             JSON.stringify({}),
-            { flag: 'wx' },
+            { flag: "wx" },
             (err) => console.log(err)
           );
         }
@@ -322,7 +247,7 @@ function API(name = 'untitled', debug = false) {
           this.node.fs.writeFileSync(
             fpath,
             JSON.stringify({}),
-            { flag: 'wx' },
+            { flag: "wx" },
             (err) => console.log(err)
           );
           this.cache = {};
@@ -343,13 +268,13 @@ function API(name = 'untitled', debug = false) {
         this.node.fs.writeFileSync(
           `${this.name}.json`,
           data,
-          { flag: 'w' },
+          { flag: "w" },
           (err) => console.log(err)
         );
         this.node.fs.writeFileSync(
-          'root.json',
+          "root.json",
           JSON.stringify(this.root),
-          { flag: 'w' },
+          { flag: "w" },
           (err) => console.log(err)
         );
       }
@@ -357,7 +282,7 @@ function API(name = 'untitled', debug = false) {
 
     write(data, key) {
       this.log(`SET ${key}`);
-      if (key.indexOf('#') !== -1) {
+      if (key.indexOf("#") !== -1) {
         key = key.substr(1);
         if (isSurge || isLoon) {
           return $persistentStore.write(data, key);
@@ -376,7 +301,7 @@ function API(name = 'untitled', debug = false) {
 
     read(key) {
       this.log(`READ ${key}`);
-      if (key.indexOf('#') !== -1) {
+      if (key.indexOf("#") !== -1) {
         key = key.substr(1);
         if (isSurge || isLoon) {
           return $persistentStore.read(key);
@@ -394,7 +319,7 @@ function API(name = 'untitled', debug = false) {
 
     delete(key) {
       this.log(`DELETE ${key}`);
-      if (key.indexOf('#') !== -1) {
+      if (key.indexOf("#") !== -1) {
         key = key.substr(1);
         if (isSurge || isLoon) {
           return $persistentStore.write(null, key);
@@ -412,16 +337,16 @@ function API(name = 'untitled', debug = false) {
     }
 
     // notification
-    notify(title, subtitle = '', content = '', options = {}) {
-      const openURL = options['open-url'];
-      const mediaURL = options['media-url'];
+    notify(title, subtitle = "", content = "", options = {}) {
+      const openURL = options["open-url"];
+      const mediaURL = options["media-url"];
 
       if (isQX) $notify(title, subtitle, content, options);
       if (isSurge) {
         $notification.post(
           title,
           subtitle,
-          content + `${mediaURL ? '\n多媒体:' + mediaURL : ''}`,
+          content + `${mediaURL ? "\n多媒体:" + mediaURL : ""}`,
           {
             url: openURL,
           }
@@ -429,9 +354,9 @@ function API(name = 'untitled', debug = false) {
       }
       if (isLoon) {
         let opts = {};
-        if (openURL) opts['openUrl'] = openURL;
-        if (mediaURL) opts['mediaUrl'] = mediaURL;
-        if (JSON.stringify(opts) == '{}') {
+        if (openURL) opts["openUrl"] = openURL;
+        if (mediaURL) opts["mediaUrl"] = mediaURL;
+        if (JSON.stringify(opts) == "{}") {
           $notification.post(title, subtitle, content);
         } else {
           $notification.post(title, subtitle, content, opts);
@@ -440,13 +365,13 @@ function API(name = 'untitled', debug = false) {
       if (isNode || isScriptable) {
         const content_ =
           content +
-          (openURL ? `\n点击跳转: ${openURL}` : '') +
-          (mediaURL ? `\n多媒体: ${mediaURL}` : '');
+          (openURL ? `\n点击跳转: ${openURL}` : "") +
+          (mediaURL ? `\n多媒体: ${mediaURL}` : "");
         if (isJSBox) {
-          const push = require('push');
+          const push = require("push");
           push.schedule({
             title: title,
-            body: (subtitle ? subtitle + '\n' : '') + content_,
+            body: (subtitle ? subtitle + "\n" : "") + content_,
           });
         } else {
           console.log(`${title}\n${subtitle}\n${content_}\n\n`);
@@ -464,7 +389,7 @@ function API(name = 'untitled', debug = false) {
     }
 
     error(msg) {
-      console.log('ERROR: ' + msg);
+      console.log("ERROR: " + msg);
     }
 
     wait(millisec) {
@@ -475,7 +400,7 @@ function API(name = 'untitled', debug = false) {
       if (isQX || isLoon || isSurge) {
         $done(value);
       } else if (isNode && !isJSBox) {
-        if (typeof $context !== 'undefined') {
+        if (typeof $context !== "undefined") {
           $context.headers = value.headers;
           $context.statusCode = value.statusCode;
           $context.body = value.body;

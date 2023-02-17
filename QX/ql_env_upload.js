@@ -32,12 +32,15 @@ async function getScriptUrl() {
   const delIds = response.data.map((item) => item.id);
   await $.ql.delete(delIds);
   console.log(`=======================清空环境变量=======================`);
+
   await $.ql.add(
-    envs.map((env) => ({
-      name: env.name,
-      value: env.value,
-      remarks: env.remarks,
-    })),
+    envs
+      .filter((item) => item.status === 0)
+      .map((env) => ({
+        name: `${env.name}`,
+        value: `${env.value}`,
+        remarks: `${env.remarks || ''}`,
+      }))
   );
   console.log(`=======================恢复环境变量=======================`);
   if ($.read('mute') !== 'true') {
@@ -128,7 +131,7 @@ function HTTP(defaultOptions = { baseURL: '' }) {
           timeoutid = setTimeout(() => {
             events.onTimeout();
             return reject(
-              `${method} URL: ${options.url} exceeds the timeout ${timeout} ms`,
+              `${method} URL: ${options.url} exceeds the timeout ${timeout} ms`
             );
           }, timeout);
         })
@@ -147,7 +150,7 @@ function HTTP(defaultOptions = { baseURL: '' }) {
   const http = {};
   methods.forEach(
     (method) =>
-      (http[method.toLowerCase()] = (options) => send(method, options)),
+      (http[method.toLowerCase()] = (options) => send(method, options))
   );
   return http;
 }
@@ -203,7 +206,7 @@ function API(name = 'untitled', debug = false) {
             fpath,
             JSON.stringify({}),
             { flag: 'wx' },
-            (err) => console.log(err),
+            (err) => console.log(err)
           );
         }
         this.root = {};
@@ -215,12 +218,12 @@ function API(name = 'untitled', debug = false) {
             fpath,
             JSON.stringify({}),
             { flag: 'wx' },
-            (err) => console.log(err),
+            (err) => console.log(err)
           );
           this.cache = {};
         } else {
           this.cache = JSON.parse(
-            this.node.fs.readFileSync(`${this.name}.json`),
+            this.node.fs.readFileSync(`${this.name}.json`)
           );
         }
       }
@@ -236,13 +239,13 @@ function API(name = 'untitled', debug = false) {
           `${this.name}.json`,
           data,
           { flag: 'w' },
-          (err) => console.log(err),
+          (err) => console.log(err)
         );
         this.node.fs.writeFileSync(
           'root.json',
           JSON.stringify(this.root),
           { flag: 'w' },
-          (err) => console.log(err),
+          (err) => console.log(err)
         );
       }
     }
@@ -316,7 +319,7 @@ function API(name = 'untitled', debug = false) {
           content + `${mediaURL ? '\n多媒体:' + mediaURL : ''}`,
           {
             url: openURL,
-          },
+          }
         );
       }
       if (isLoon) {

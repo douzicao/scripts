@@ -1,4 +1,3 @@
-
 $.ql = {
   type: 'api',
   headers: {
@@ -58,6 +57,21 @@ $.ql = {
     };
     return $.http.get(opt).then((response) => JSON.parse(response.body));
   },
+  initial: () => {
+    $.ql_url = $.ql_config.ip;
+    if ($.ql_url && !$.ql_url.match(/^(http|https)/))
+      $.ql_url = `http://${$.ql_url}`;
+
+    $.application = {
+      client_id: $.ql_config.client_id,
+      client_secret: $.ql_config.client_secret,
+    };
+
+    $.ql_account = {
+      username: $.ql_config.username,
+      password: $.ql_config.password,
+    };
+  },
 };
 
 try {
@@ -66,18 +80,7 @@ try {
   $.ql_config = {};
 }
 
-$.ql_url = $.ql_config.ip;
-if (!$.ql_url.match(/^(http|https)/)) $.ql_url = `http://${$.ql_url}`;
-
-$.application = {
-  client_id: $.ql_config.client_id,
-  client_secret: $.ql_config.client_secret,
-};
-
-$.ql_account = {
-  username: $.ql_config.username,
-  password: $.ql_config.password,
-};
+$.ql.initial();
 
 $.log(`地址：${$.ql_url}`);
 
@@ -96,7 +99,7 @@ if ($.ql_config.is_pwd === 'true') {
           'Content-Type': `application/json;charset=UTF-8`,
         },
       };
-      
+
       let response = await $.http.post(options);
       response = JSON.parse(response.body);
       if (response.code === 200) {
